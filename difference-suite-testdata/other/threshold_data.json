@@ -1,0 +1,352 @@
+[
+    {
+        "id": "APPEAL-2023001",
+        "applicant_name": "Appellant A1",
+        "origin": "Tribunal Case A",
+        "case_summary": "Appellant's account of political activities is consistent, but lack of documentary evidence raises doubt.",
+        "risk_score": 0.450
+    },
+    {
+        "id": "APPEAL-2023002",
+        "applicant_name": "Appellant B2",
+        "origin": "Tribunal Case B",
+        "case_summary": "Medical report confirms scarring, but tribunal questions delay in seeking asylum.",
+        "risk_score": 0.720
+    },
+    {
+        "id": "APPEAL-2023003",
+        "applicant_name": "Appellant C3",
+        "origin": "Tribunal Case C",
+        "case_summary": "Translation reveals ambiguities in key testimony regarding method of escape.",
+        "risk_score": 0.310
+    },
+    {
+        "id": "APPEAL-2023004",
+        "applicant_name": "Appellant D4",
+        "origin": "Tribunal Case D",
+        "case_summary": "Country guidance suggests safety in capital, contradicting fear of state agents.",
+        "risk_score": 0.550
+    },
+    {
+        "id": "APPEAL-2023005",
+        "applicant_name": "Appellant E5",
+        "origin": "Tribunal Case A",
+        "case_summary": "Witness testimony supports claim, but witness credibility is challenged.",
+        "risk_score": 0.580
+    },
+    {
+        "id": "APPEAL-2023006",
+        "applicant_name": "Appellant F6",
+        "origin": "Tribunal Case B",
+        "case_summary": "Claim of religious persecution lacks basic knowledge of faith.",
+        "risk_score": 0.250
+    },
+    {
+        "id": "APPEAL-2023007",
+        "applicant_name": "Appellant G7",
+        "origin": "Tribunal Case C",
+        "case_summary": "Untraceable smuggler creates gap in evidence chain.",
+        "risk_score": 0.480
+    },
+    {
+        "id": "APPEAL-2023008",
+        "applicant_name": "Appellant H8",
+        "origin": "Tribunal Case D",
+        "case_summary": "Social media evidence disputed as potentially fabricated.",
+        "risk_score": 0.620
+    },
+    {
+        "id": "APPEAL-2023009",
+        "applicant_name": "Appellant I9",
+        "origin": "Tribunal Case A",
+        "case_summary": "Fear of persecution based on imputed political opinion from family.",
+        "risk_score": 0.810
+    },
+    {
+        "id": "APPEAL-2023010",
+        "applicant_name": "Appellant J10",
+        "origin": "Tribunal Case B",
+        "case_summary": "Decision hinges on whether UK activities would attract attention upon return.",
+        "risk_score": 0.510
+    },
+    {
+        "id": "APPEAL-2023011",
+        "applicant_name": "Appellant K11",
+        "origin": "Tribunal Case C",
+        "case_summary": "Inconsistent statements regarding date of departure from country of origin.",
+        "risk_score": 0.380
+    },
+    {
+        "id": "APPEAL-2023012",
+        "applicant_name": "Appellant L12",
+        "origin": "Tribunal Case D",
+        "case_summary": "Documentary evidence proven to be counterfeit by forensic analysis.",
+        "risk_score": 0.150
+    },
+    {
+        "id": "APPEAL-2023013",
+        "applicant_name": "Appellant M13",
+        "origin": "Tribunal Case A",
+        "case_summary": "Detailed and consistent account of detention, supported by NGO reports.",
+        "risk_score": 0.890
+    },
+    {
+        "id": "APPEAL-2023014",
+        "applicant_name": "Appellant N14",
+        "origin": "Tribunal Case B",
+        "case_summary": "Claim based on sexuality deemed credible due to detailed personal narrative.",
+        "risk_score": 0.760
+    },
+    {
+        "id": "APPEAL-2023015",
+        "applicant_name": "Appellant O15",
+        "origin": "Tribunal Case C",
+        "case_summary": "Failure to claim asylum in safe third countries weakens credibility.",
+        "risk_score": 0.420
+    },
+    {
+        "id": "APPEAL-2023016",
+        "applicant_name": "Appellant P16",
+        "origin": "Tribunal Case D",
+        "case_summary": "Appellant's role in opposition party considered low-level and not at risk.",
+        "risk_score": 0.350
+    },
+    {
+        "id": "APPEAL-2023017",
+        "applicant_name": "Appellant Q17",
+        "origin": "Tribunal Case A",
+        "case_summary": "High profile activist activity in UK increases risk upon return.",
+        "risk_score": 0.840
+    },
+    {
+        "id": "APPEAL-2023018",
+        "applicant_name": "Appellant R18",
+        "origin": "Tribunal Case B",
+        "case_summary": "Discrepancy between initial screening interview and substantive interview.",
+        "risk_score": 0.460
+    },
+    {
+        "id": "APPEAL-2023019",
+        "applicant_name": "Appellant S19",
+        "origin": "Tribunal Case C",
+        "case_summary": "Generic account of persecution lacks specific detail.",
+        "risk_score": 0.280
+    },
+    {
+        "id": "APPEAL-2023020",
+        "applicant_name": "Appellant T20",
+        "origin": "Tribunal Case D",
+        "case_summary": "Psychological report supports claim of PTSD due to past trauma.",
+        "risk_score": 0.680
+    },
+    {
+        "id": "APPEAL-2023021",
+        "applicant_name": "Appellant U21",
+        "origin": "Tribunal Case A",
+        "case_summary": "Family members already granted asylum based on same facts.",
+        "risk_score": 0.920
+    },
+    {
+        "id": "APPEAL-2023022",
+        "applicant_name": "Appellant V22",
+        "origin": "Tribunal Case B",
+        "case_summary": "Claim of trafficking supported by NRM referral but disputed by Home Office.",
+        "risk_score": 0.590
+    },
+    {
+        "id": "APPEAL-2023023",
+        "applicant_name": "Appellant W23",
+        "origin": "Tribunal Case C",
+        "case_summary": "Late submission of crucial evidence raises procedural questions.",
+        "risk_score": 0.490
+    },
+    {
+        "id": "APPEAL-2023024",
+        "applicant_name": "Appellant X24",
+        "origin": "Tribunal Case D",
+        "case_summary": "Appellant unable to identify key landmarks in claimed home village.",
+        "risk_score": 0.180
+    },
+    {
+        "id": "APPEAL-2023025",
+        "applicant_name": "Appellant Y25",
+        "origin": "Tribunal Case A",
+        "case_summary": "Video evidence of attendance at protest confirmed as authentic.",
+        "risk_score": 0.790
+    },
+    {
+        "id": "APPEAL-2023026",
+        "applicant_name": "Appellant Z26",
+        "origin": "Tribunal Case B",
+        "case_summary": "Internal relocation alternative available within country of origin.",
+        "risk_score": 0.330
+    },
+    {
+        "id": "APPEAL-2023027",
+        "applicant_name": "Appellant AA27",
+        "origin": "Tribunal Case C",
+        "case_summary": "Appellant's business activities likely to attract extortion by non-state agents.",
+        "risk_score": 0.640
+    },
+    {
+        "id": "APPEAL-2023028",
+        "applicant_name": "Appellant BB28",
+        "origin": "Tribunal Case D",
+        "case_summary": "State protection deemed sufficient for general crime victims.",
+        "risk_score": 0.290
+    },
+    {
+        "id": "APPEAL-2023029",
+        "applicant_name": "Appellant CC29",
+        "origin": "Tribunal Case A",
+        "case_summary": "Appellant is a minor with no family support in country of origin.",
+        "risk_score": 0.880
+    },
+    {
+        "id": "APPEAL-2023030",
+        "applicant_name": "Appellant DD30",
+        "origin": "Tribunal Case B",
+        "case_summary": "Conflict in country of origin has subsided, reducing general risk.",
+        "risk_score": 0.410
+    },
+    {
+        "id": "APPEAL-2023031",
+        "applicant_name": "Appellant EE31",
+        "origin": "Tribunal Case C",
+        "case_summary": "Appellant belongs to a clan involved in a blood feud.",
+        "risk_score": 0.660
+    },
+    {
+        "id": "APPEAL-2023032",
+        "applicant_name": "Appellant FF32",
+        "origin": "Tribunal Case D",
+        "case_summary": "Return would result in destitution breaching Article 3.",
+        "risk_score": 0.540
+    },
+    {
+        "id": "APPEAL-2023033",
+        "applicant_name": "Appellant GG33",
+        "origin": "Tribunal Case A",
+        "case_summary": "Appellant worked as a journalist reporting on corruption.",
+        "risk_score": 0.820
+    },
+    {
+        "id": "APPEAL-2023034",
+        "applicant_name": "Appellant HH34",
+        "origin": "Tribunal Case B",
+        "case_summary": "Previous visa application contained false information.",
+        "risk_score": 0.220
+    },
+    {
+        "id": "APPEAL-2023035",
+        "applicant_name": "Appellant II35",
+        "origin": "Tribunal Case C",
+        "case_summary": "Healthcare needs cannot be met in country of origin.",
+        "risk_score": 0.570
+    },
+    {
+        "id": "APPEAL-2023036",
+        "applicant_name": "Appellant JJ36",
+        "origin": "Tribunal Case D",
+        "case_summary": "Appellant has established private life in UK over 10 years.",
+        "risk_score": 0.740
+    },
+    {
+        "id": "APPEAL-2023037",
+        "applicant_name": "Appellant KK37",
+        "origin": "Tribunal Case A",
+        "case_summary": "Criminal record in UK weighs against discretionary leave.",
+        "risk_score": 0.360
+    },
+    {
+        "id": "APPEAL-2023038",
+        "applicant_name": "Appellant LL38",
+        "origin": "Tribunal Case B",
+        "case_summary": "Appellant is a lone woman from a patriarchal society.",
+        "risk_score": 0.710
+    },
+    {
+        "id": "APPEAL-2023039",
+        "applicant_name": "Appellant MM39",
+        "origin": "Tribunal Case C",
+        "case_summary": "Evidence suggests appellant was coerced into smuggling drugs.",
+        "risk_score": 0.630
+    },
+    {
+        "id": "APPEAL-2023040",
+        "applicant_name": "Appellant NN40",
+        "origin": "Tribunal Case D",
+        "case_summary": "Appellant's claimed ethnicity disputed by language analysis.",
+        "risk_score": 0.260
+    },
+    {
+        "id": "APPEAL-2023041",
+        "applicant_name": "Appellant OO41",
+        "origin": "Tribunal Case A",
+        "case_summary": "Converted to Christianity in UK, genuine belief confirmed by clergy.",
+        "risk_score": 0.850
+    },
+    {
+        "id": "APPEAL-2023042",
+        "applicant_name": "Appellant PP42",
+        "origin": "Tribunal Case B",
+        "case_summary": "Conversion deemed opportunistic to bolster asylum claim.",
+        "risk_score": 0.320
+    },
+    {
+        "id": "APPEAL-2023043",
+        "applicant_name": "Appellant QQ43",
+        "origin": "Tribunal Case C",
+        "case_summary": "Political party illegal in home country, membership card authentic.",
+        "risk_score": 0.780
+    },
+    {
+        "id": "APPEAL-2023044",
+        "applicant_name": "Appellant RR44",
+        "origin": "Tribunal Case D",
+        "case_summary": "No arrest warrant produced despite claim of being wanted.",
+        "risk_score": 0.440
+    },
+    {
+        "id": "APPEAL-2023045",
+        "applicant_name": "Appellant SS45",
+        "origin": "Tribunal Case A",
+        "case_summary": "Appellant detained at airport but released without charge.",
+        "risk_score": 0.530
+    },
+    {
+        "id": "APPEAL-2023046",
+        "applicant_name": "Appellant TT46",
+        "origin": "Tribunal Case B",
+        "case_summary": "Stateless bidoon from Kuwait, undocumented but credible.",
+        "risk_score": 0.770
+    },
+    {
+        "id": "APPEAL-2023047",
+        "applicant_name": "Appellant UU47",
+        "origin": "Tribunal Case C",
+        "case_summary": "Claim of modern slavery rejected by mechanism.",
+        "risk_score": 0.240
+    },
+    {
+        "id": "APPEAL-2023048",
+        "applicant_name": "Appellant VV48",
+        "origin": "Tribunal Case D",
+        "case_summary": "Appellant's testimony was vague and lacked detail on core claim.",
+        "risk_score": 0.190
+    },
+    {
+        "id": "APPEAL-2023049",
+        "applicant_name": "Appellant WW49",
+        "origin": "Tribunal Case A",
+        "case_summary": "Fear of honor killing by family members, police protection unavailable.",
+        "risk_score": 0.830
+    },
+    {
+        "id": "APPEAL-2023050",
+        "applicant_name": "Appellant XX50",
+        "origin": "Tribunal Case B",
+        "case_summary": "Appellant has significant mental health issues affecting memory.",
+        "risk_score": 0.610
+    }
+]
