@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap');
+@config "../tailwind.config.js";
+
+/* Deep Culture Design System */
+:root {
+  --color-text: #000100;
+  --color-main: #832161;
+  --color-main-rgb: 131, 33, 97;
+  --color-main-secondary: #4B7BBE;
+  --color-alt: #ADFC92;
+  --color-background: #99B2DD;
+  --font-main: 'Lexend', sans-serif;
+
+  /* Legacy/Tailwind mapping */
+  --color-border: var(--color-main);
+  --color-surface: #ffffff;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-main);
+    line-height: 1.6;
+    @apply antialiased h-screen overflow-hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight uppercase text-main;
+    font-family: var(--font-main);
+  }
+}
+
+@layer components {
+
+  /* Cards / Panels */
+  .deep-panel {
+    @apply bg-white border-2 border-main;
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Buttons */
+  .deep-button {
+    @apply px-4 py-2 font-semibold uppercase bg-alt border-2 border-main text-main cursor-pointer transition-transform duration-200 select-none;
+  }
+
+  .deep-button:hover {
+    @apply -translate-y-[2px];
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+  }
+
+  .deep-button:disabled {
+    @apply opacity-50 cursor-not-allowed transform-none shadow-none;
+  }
+
+  .deep-button-secondary {
+    @apply px-4 py-2 font-semibold uppercase bg-white border-2 border-main text-main cursor-pointer transition-transform duration-200 select-none;
+  }
+
+  .deep-button-secondary:hover {
+    @apply bg-main/5 -translate-y-[2px];
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Input */
+  .deep-input {
+    @apply w-full px-3 py-2 border-2 border-main bg-white text-main focus:outline-none;
+  }
+
+  .deep-input:focus {
+    box-shadow: 2px 2px 0px rgba(131, 33, 97, 0.2);
+  }
+
+  /* Navigation Item */
+  .nav-item {
+    @apply flex items-center gap-2 px-4 py-2 text-main/80 hover:text-main hover:bg-white/40 transition-colors cursor-pointer font-medium;
+  }
+
+  .nav-item.active {
+    @apply bg-white text-main font-bold border-r-4 border-main;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-main);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-main);
+  opacity: 0.8;
+}

@@ -1,0 +1,242 @@
+[
+    {
+        "timestamp": "2024-01-01",
+        "value": 50,
+        "content": "Stable System State"
+    },
+    {
+        "timestamp": "2024-01-02",
+        "value": 52,
+        "content": "Minor variance"
+    },
+    {
+        "timestamp": "2024-01-03",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-04",
+        "value": 49,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-05",
+        "value": 53,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-06",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-07",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-08",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-09",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-10",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-11",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-12",
+        "value": 49,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-13",
+        "value": 53,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-14",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-15",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-16",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-17",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-18",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-19",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-20",
+        "value": 49,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-21",
+        "value": 53,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-22",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-23",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-24",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-01-25",
+        "value": 50,
+        "content": "Pre-crash stability"
+    },
+    {
+        "timestamp": "2024-01-26",
+        "value": 5,
+        "content": "FAILURE: Critical System Crash"
+    },
+    {
+        "timestamp": "2024-01-27",
+        "value": 4,
+        "content": "System Down / Offline"
+    },
+    {
+        "timestamp": "2024-01-28",
+        "value": 5,
+        "content": "System Down / Offline"
+    },
+    {
+        "timestamp": "2024-01-29",
+        "value": 6,
+        "content": "Diagnostics Running"
+    },
+    {
+        "timestamp": "2024-01-30",
+        "value": 5,
+        "content": "System Down / Offline"
+    },
+    {
+        "timestamp": "2024-01-31",
+        "value": 48,
+        "content": "RECOVERY: System Restart Initiated"
+    },
+    {
+        "timestamp": "2024-02-01",
+        "value": 51,
+        "content": "Stabilizing post-recovery"
+    },
+    {
+        "timestamp": "2024-02-02",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-03",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-04",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-05",
+        "value": 49,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-06",
+        "value": 53,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-07",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-08",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-09",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-10",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-11",
+        "value": 5,
+        "content": "FAILURE: Secondary Crash Event"
+    },
+    {
+        "timestamp": "2024-02-12",
+        "value": 5,
+        "content": "System Down"
+    },
+    {
+        "timestamp": "2024-02-13",
+        "value": 48,
+        "content": "Quick Recovery"
+    },
+    {
+        "timestamp": "2024-02-14",
+        "value": 50,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-15",
+        "value": 51,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-16",
+        "value": 52,
+        "content": "Standard Operation"
+    },
+    {
+        "timestamp": "2024-02-17",
+        "value": 50,
+        "content": "Standard Operation"
+    }
+]
