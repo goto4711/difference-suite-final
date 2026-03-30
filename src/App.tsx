@@ -18,6 +18,7 @@ import ThresholdAdjuster from './components/tools/ThresholdAdjuster/ThresholdAdj
 import ImaginationInspector from './components/tools/ImaginationInspector/ImaginationInspector';
 import SemanticOracle from './components/tools/SemanticOracle/SemanticOracle';
 import VisualStoryteller from './components/tools/VisualStoryteller/VisualStoryteller';
+import DeepTime from './components/tools/DeepTime/DeepTime';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="/imagination-inspector" element={<ImaginationInspector />} />
             <Route path="/semantic-oracle" element={<SemanticOracle />} />
             <Route path="/visual-storyteller" element={<VisualStoryteller />} />
+            <Route path="/deep-time" element={<DeepTime />} />
             <Route path="*" element={<div className="p-8 text-center text-xl">Tool Coming Soon...</div>} />
           </Routes>
         </AuthGuard>

@@ -9,7 +9,8 @@ import {
     Sliders,
     FileText,
     Sparkles,
-    BrainCircuit
+    BrainCircuit,
+    Timer
 } from 'lucide-react';
 
 export const TOOLS = [
@@ -30,6 +31,12 @@ export const TOOLS = [
         label: 'Deep Vector Mirror',
         icon: Layers,
         description: ' Visualize deep learning vectorization.'
+    },
+    {
+        path: '/deep-time',
+        label: 'Deep Time',
+        icon: Timer,
+        description: 'Explore how AI architectures handle time and memory.'
     },
     {
         path: '/detail-extractor',

@@ -10,7 +10,7 @@
 
 This article presents the DEEP CULTURE project (ERC Advanced Grant 2023) and its flagship output: the Difference Suite—a browser-based toolkit that transforms critical humanities theory into operational software. As deep learning increasingly mediates cultural production, circulation, and consumption, the DEEP CULTURE project offers a novel framework for understanding and reshaping what we term "deep culture." Rather than accepting the uniformity imposed by commercial AI systems, the project develops conceptual and methodological innovations that foreground humanistic values of difference, ambiguity, and contextual specificity. The Difference Suite operationalizes these innovations through thirteen interactive tools, each corresponding to a theoretical "keyword" that bridges deep learning vocabulary with critical humanities concerns. This article provides an in-depth examination of the project's theoretical foundations, followed by detailed walkthroughs of each tool, demonstrating how the suite enables researchers and publics to surface, contest, and reimagine the cultural work of deep learning.
 
-**Keywords**: Digital Humanities, Deep Learning, Cultural AI, Critical Algorithm Studies, Public Digital Humanities, TensorFlow.js
+**Keywords**: Digital Humanities, Deep Learning, Cultural AI, Critical Algorithm Studies, Public Digital Humanities, Transformers.js
 
 ---
 
@@ -61,7 +61,7 @@ Each translation represents not merely a terminological shift but a reorientatio
 
 The project's public-facing intervention takes the form of what political theorist Bonnie Honig (2017) calls a "public thing"—an object that can gather diverse publics into contestation and deliberation. Drawing on John Law's (2017) concept of "little tools" that help "recognise and articulate difference," the Difference Suite is designed to make deep learning's underlying operations accessible to non-experts, transforming passive consumers of AI into active interrogators.
 
-The suite is implemented as a browser-based React application using TensorFlow.js, enabling all computation to occur locally without sending data to external servers. This architecture embodies the project's commitment to democratising access: no programming knowledge is required, no accounts need be created, and the tools work with users' own cultural materials—photographs, texts, audio recordings—rather than predetermined datasets.
+The suite is implemented as a browser-based React application using **Transformers.js** and **TensorFlow.js**, enabling all computation to occur locally without sending data to external servers. This architecture embodies the project's commitment to democratising access: no programming knowledge is required, no accounts need be created, and the tools work with users' own cultural materials—photographs, texts, audio recordings—rather than predetermined datasets.
 
 ---
 
@@ -72,9 +72,10 @@ The suite is implemented as a browser-based React application using TensorFlow.j
 The Difference Suite is built on modern web technologies that enable sophisticated machine learning in the browser:
 
 - **React 19** provides the component architecture
-- **TensorFlow.js 4.22** brings deep learning to client-side JavaScript
-- **MobileNet** enables image classification and feature extraction
-- **Universal Sentence Encoder** provides text embeddings
+- **Transformers.js** (v3) powers the primary inference engine via WebGPU/WASM
+- **TensorFlow.js 4.22** supports specialized training tasks
+- **MobileNet & CLIP** enable image classification and multimodal alignment
+- **BGE-Small** provides semantic text embeddings
 - **D3.js and Recharts** power interactive visualisations
 - **Zustand** manages application state
 
@@ -114,7 +115,7 @@ Every tool in the suite follows a consistent layout: a main canvas (occupying tw
 
 **Theoretical Context**: Relationality has emerged as a key orientation for critical humanities, from feminist epistemology (Keller, 1997) to post-colonial theory (Glissant, 1997). Deep learning's vectorisation—converting all data into numerical arrays—promises new forms of multi-dimensional relationality but also raises concerns about "total quantification" (McQuillan, 2022) and reasoning without context.
 
-**How It Works**: The Context Weaver uses **Transformers.js** with the **all-MiniLM-L6-v2** model to convert texts into high-dimensional vectors. It then computes cosine similarities to identify semantic relationships across contexts, visualising results in a radial diagram and comparison table. All processing occurs locally in the user's browser, ensuring that sensitive cultural data never leaves the research environment.
+**How It Works**: The Context Weaver uses **Transformers.js** with the **bge-small-en-v1.5** model to convert texts into high-dimensional vectors. It then computes cosine similarities to identify semantic relationships across contexts, visualising results in a radial diagram and comparison table. All processing occurs locally in the user's browser, ensuring that sensitive cultural data never leaves the research environment.
 
 **Walkthrough**: A researcher investigating Holocaust memory discourse creates two collections: one containing survivor testimonies, another containing contemporary social media posts about the Holocaust. The Context Weaver embeds both corpora and identifies where language patterns converge and diverge. A survivor's phrase about "remembering for the future" might align with certain educational materials but contrast sharply with trivialising online rhetoric.
 
@@ -128,9 +129,9 @@ Every tool in the suite follows a consistent layout: a main canvas (occupying tw
 
 **Theoretical Context**: Deep learning's power derives from its ability to learn distributed representations—vectors that encode complex properties in numerical form. Yet these representations remain opaque, their dimensions lacking interpretable labels. The Deep Vector Mirror makes this foundational operation visible.
 
-**How It Works**: The tool extracts interactive feature vectors from images (using MobileNet) or texts (using **Transformers.js all-MiniLM-L6-v2**). Most significantly, it features an **Attention Lens** that visualises the model's internal attention weights, revealing which specific parts of a text or image the AI prioritises when generating its representations.
+**How It Works**: The tool extracts interactive feature vectors from images (using **CLIP**) or texts (using **Transformers.js bge-small**). Most significantly, it features an **Attention Lens** that visualises the model's internal attention weights, revealing which specific parts of a text or image the AI prioritises when generating its representations.
 
-**Walkthrough**: A user uploads a personal photograph—perhaps a family portrait. The Deep Vector Mirror displays the 1,280-dimensional MobileNet embedding as a grid of coloured cells. Moving between photos reveals how the representation changes: which dimensions activate for faces, for indoor settings, for particular colour palettes. The user begins to develop intuitions about what the model "sees."
+**Walkthrough**: A user uploads a personal photograph—perhaps a family portrait. The Deep Vector Mirror displays the 512-dimensional CLIP embedding as a grid of coloured cells. Moving between photos reveals how the representation changes: which dimensions activate for faces, for indoor settings, for particular colour palettes. The user begins to develop intuitions about what the model "sees."
 
 **Critical Insight**: The vector heatmap demystifies AI without domesticating it. Users see that their photographs become numerical arrays but also confront the profound inscrutability of what those numbers mean. This productive tension—between transparency and opacity—is precisely what critical engagement with AI requires.
 
@@ -254,7 +255,7 @@ Every tool in the suite follows a consistent layout: a main canvas (occupying tw
 
 **Theoretical Context**: The metaphor of the "oracle" in computing traditionally refers to a theoretical device capable of solving undecidable problems. The Semantic Oracle inverts this trope, revealing not algorithmic omniscience but the profound gaps between computational "understanding" and human meaning-making. By running a large language model locally in the browser, it demonstrates both the power and the limitations of generative AI.
 
-**How It Works**: Working entirely in-browser, the Semantic Oracle uses **Transformers.js** with the **LaMini-Flan-T5-783M** model for local generative inference. It functions in three modes: *Define* (explanation), *Expand* (connecting concepts), and *Tangent* (abstract metaphors). It can ground its responses in the user's uploaded text corpus, acting as a local, private knowledge transformer.d hidden connections), or **Tangent** (creative, abstract metaphor). The tool can also draw on text corpus items from the user's collection.
+**How It Works**: Working entirely in-browser, the Semantic Oracle uses **Transformers.js** with the **LaMini-Flan-T5-783M** model for local generative inference. It functions in three modes: *Define* (explanation), *Expand* (connecting concepts), and *Tangent* (abstract metaphors). It can ground its responses in the user's uploaded text corpus, acting as a local, private knowledge transformer.
 
 **Walkthrough**: A researcher studying colonial archives enters the phrase "civilising mission" and selects "Expand" mode. The Semantic Oracle generates a list of related concepts—"development," "progress," "trusteeship," "modernisation"—revealing how deeply colonial vocabulary persists in contemporary discourse. Switching to "Tangent" mode produces a metaphorical interpretation that surfaces unexpected associations, prompting critical reflection on the language's continued resonance.
 
@@ -268,7 +269,7 @@ Every tool in the suite follows a consistent layout: a main canvas (occupying tw
 
 **Theoretical Context**: The Visual Storyteller explores the intersection of computer vision and natural language generation—two domains that commercial AI has recently combined in image captioning systems. Following the project's interest in how AI constructs cultural narratives, this tool examines the gap between visual input and textual output, making visible the interpretive choices that algorithms embed in seemingly objective descriptions.
 
-**How It Works**: The tool uses Transformers.js to run ViT-GPT2, an image captioning model, entirely in the browser. Users select images from their collection, and the model generates natural language captions. A story history maintains the last ten generated captions, enabling comparison across multiple images.
+**How It Works**: The tool uses **Transformers.js** to run **ViT-GPT2**, an image captioning model, entirely in the browser. Users select images from their collection, and the model generates natural language captions. A story history maintains the last ten generated captions, enabling comparison across multiple images.
 
 **Walkthrough**: A researcher uploads a historical photograph depicting a public gathering. The Visual Storyteller generates a caption—perhaps "a group of people standing in a town square." The researcher notes what the model emphasises (spatial arrangement, number of figures) and what it omits (historical context, emotional tone, political significance). By captioning multiple related images, patterns emerge: certain subjects reliably trigger particular descriptive vocabularies, while others remain consistently under-described.
 

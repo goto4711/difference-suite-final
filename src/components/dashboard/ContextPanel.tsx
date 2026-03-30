@@ -44,6 +44,7 @@ export const ContextPanel: React.FC = () => {
             { id: 'discontinuity', name: 'Discontinuity Detector', path: '/discontinuity-detector', icon: Activity, active: isTimeSeries },
             { id: 'threshold', name: 'Threshold Adjuster', path: '/threshold-adjuster', icon: Scale, active: isTimeSeries },
             { id: 'networked', name: 'Networked Narratives', path: '/networked-narratives', icon: FileText, active: isText && !isTimeSeries },
+            { id: 'deep-time', name: 'Deep Time', path: '/deep-time?from=suite', icon: Activity, active: isImage || isText || isTimeSeries },
             { id: 'imagination', name: 'Imagination Inspector', path: '/imagination-inspector', icon: Sparkles, active: true },
         ].filter(t => t.active);
     }, [selectedDataPoints]);

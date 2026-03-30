@@ -27,3 +27,4 @@ declare module '*/GeneratorEngine';
 declare module '*/BiasAnalyzer';
 declare module '*/NLPProcessor';
 declare module '*/GraphViz';
+declare module '*/adapters';

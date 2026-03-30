@@ -28,7 +28,8 @@ If you want to add a new AI capability or machine learning model, follow these s
 
 ## Write a Task Handler
 
-Create a new handler in `src/core/inference/handlers/myTask.ts`:
+Create a new handler in `src/core/inference/handlers/myTask.ts`.
+**Note:** Ensure your handler robustly handles different output formats (e.g., batch vs. single) and checks for necessary payload properties (e.g., `imageUrl` vs. `image`).
 
 ```typescript
 import { registerHandler } from '../taskHandlers';
@@ -37,13 +38,17 @@ import type { InferenceRequest, InferenceResult } from '../types';
 registerHandler({
   task: 'object-detection',
   async run(request: InferenceRequest, pipeline: any, onProgress): Promise<InferenceResult> {
-    const { image } = request.payload as { image: string };
+    const payload = request.payload as { image?: string; imageUrl?: string };
+    const image = payload.image || payload.imageUrl;
     
+    if (!image) throw new Error('Missing image payload');
+
     // You can report mid-inference progress natively to the UI
     onProgress?.({ id: request.id, stage: 'running', progress: 0.5, message: 'Detecting physical boundaries...' });
     
     const result = await pipeline(image);
     
+    // Ensure output is serializable (e.g. using .tolist() if it's a tensor)
     return { id: request.id, output: result };
   },
 });
