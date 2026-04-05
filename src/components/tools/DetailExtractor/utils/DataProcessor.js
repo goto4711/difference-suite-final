@@ -108,7 +108,7 @@ const euclideanDistance = (a, b) => {
 // Or better: Use the distance to the two furthest centroids as X and Y?
 const projectTo2D = (data) => {
     // Very naive projection: just use first 2 dimensions for speed
-    // This is bad for USE embeddings.
+    // This is bad for BGE embeddings.
     // Better: PCA
 
     // Compute mean

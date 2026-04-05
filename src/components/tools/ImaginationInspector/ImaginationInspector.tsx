@@ -3,11 +3,11 @@ import { Sparkles, AlertTriangle, User, Split, Maximize, Search, Database } from
 import PromptInput from './components/PromptInput';
 import GenerationGrid from './components/GenerationGrid';
 import AbsenceReport from './components/AbsenceReport';
-import { generateImages } from './utils/GeneratorEngine';
+import { generateImages, type GenerateOptions } from './utils/GeneratorEngine';
 import { analyzeBias } from './utils/BiasAnalyzer';
 import ToolLayout from '../../shared/ToolLayout';
 import { useSuiteStore } from '../../../stores/suiteStore';
-import { alignDatasetToPrompt, findBestMatch } from './utils/DatasetAligner';
+import { alignDatasetToPrompt } from './utils/DatasetAligner';
 import type { AlignmentResult } from './utils/DatasetAligner';
 import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
 
@@ -20,7 +20,7 @@ const INTERNAL_ARCHETYPES = [
     { id: 'arc-worker', name: 'Worker', content: `${window.location.origin}/images/worker_archetype.png`, type: 'image' },
 ];
 
-const RealityMatches = ({ alignments, label }: { alignments: AlignmentResult[], label?: string }) => {
+const RealityMatches = ({ alignments, label, datasetName }: { alignments: AlignmentResult[], label?: string, datasetName: string }) => {
     if (alignments.length === 0) return null;
 
     return (
@@ -46,7 +46,12 @@ const RealityMatches = ({ alignments, label }: { alignments: AlignmentResult[], 
                     ))}
                 </div>
                 <p className="text-[9px] text-text-muted mt-2 leading-tight">
-                    Top semantically similar items found in your dataset using multimodal CLIP alignment.
+                    Top semantically similar items using multimodal CLIP alignment:{' '}
+                    {datasetName.split(', ').map((name, i, arr) => (
+                        <span key={name}>
+                            <strong>{name}</strong>{i < arr.length - 1 ? ', ' : ''}
+                        </span>
+                    ))}
                 </p>
             </div>
         </div>
@@ -54,7 +59,18 @@ const RealityMatches = ({ alignments, label }: { alignments: AlignmentResult[], 
 };
 
 const ImaginationInspector = () => {
-    const { dataset } = useSuiteStore();
+    const { dataset, collections } = useSuiteStore();
+
+    // Derive a human-readable name for the dataset alignment section.
+    const datasetName = (() => {
+        if (dataset.length === 0) return 'Built-in Archetypes';
+        const collectionIds = [...new Set(dataset.map(i => i.collectionId).filter(Boolean))];
+        const namedCollections = collectionIds
+            .map(id => collections.find(c => c.id === id)?.name)
+            .filter(Boolean) as string[];
+        if (namedCollections.length > 0) return namedCollections.join(', ');
+        return `Your Dataset (${dataset.length} items)`;
+    })();
     const [mode, setMode] = useState<'single' | 'compare'>('single');
 
     // Side A (Default)
@@ -70,6 +86,8 @@ const ImaginationInspector = () => {
     const [alignmentsB, setAlignmentsB] = useState<AlignmentResult[]>([]);
 
     const [loading, setLoading] = useState(false);
+    const [adjectiveMode, setAdjectiveMode] = useState<'varied' | 'fixed'>('varied');
+    const [fixedAdjective, setFixedAdjective] = useState('no_adjective');
 
     // Voice Input State
     const [isMicOpen, setIsMicOpen] = useState(false);
@@ -80,37 +98,24 @@ const ImaginationInspector = () => {
         setLoading(true);
 
         try {
+            const opts: GenerateOptions = adjectiveMode === 'fixed' ? { fixedAdjective } : {};
             // Run A
             if (promptA.trim()) {
-                const genA = await generateImages(promptA);
+                const genA = await generateImages(promptA, opts);
+                setResultsA(genA);
+                setReportA(analyzeBias(genA));
                 const searchSpaceA = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
-                
-                // For each result in A, find a matching image from the dataset (or archetypes)
-                const resultsWithImagesA = await Promise.all(genA.map(async (res) => ({
-                    ...res,
-                    image: await findBestMatch(res.syntheticPrompt, searchSpaceA)
-                })));
-                
-                setResultsA(resultsWithImagesA);
-                setReportA(analyzeBias(resultsWithImagesA));
                 const aliA = await alignDatasetToPrompt(promptA, searchSpaceA);
-                setAlignmentsA(aliA.slice(0, 3)); // Top 3 matches
+                setAlignmentsA(aliA.slice(0, 3));
             }
             // Run B if comparing
             if (mode === 'compare' && promptB.trim()) {
-                const genB = await generateImages(promptB);
+                const genB = await generateImages(promptB, opts);
+                setResultsB(genB);
+                setReportB(analyzeBias(genB));
                 const searchSpaceB = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
-                
-                // For each result in B, find a matching image from the dataset (or archetypes)
-                const resultsWithImagesB = await Promise.all(genB.map(async (res) => ({
-                    ...res,
-                    image: await findBestMatch(res.syntheticPrompt, searchSpaceB)
-                })));
-                
-                setResultsB(resultsWithImagesB);
-                setReportB(analyzeBias(resultsWithImagesB));
                 const aliB = await alignDatasetToPrompt(promptB, searchSpaceB);
-                setAlignmentsB(aliB.slice(0, 3)); // Top 3 matches
+                setAlignmentsB(aliB.slice(0, 3));
             }
         } catch (error) {
             console.error("Generation failed:", error);
@@ -162,7 +167,7 @@ const ImaginationInspector = () => {
                         Generative Imagination
                     </h2>
                     <p className="text-xs text-text-muted opacity-70">
-                        Simulated image generation to probe the boundaries of machine "creativity"
+                        What does AI imagine when asked to picture a profession? Real Stable Diffusion outputs, classified by CLIP.
                     </p>
                 </div>
 
@@ -235,6 +240,45 @@ const ImaginationInspector = () => {
                 </div>
             )}
 
+            {/* Adjective Control */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase text-[var(--color-main)] opacity-70 tracking-widest">Adjective</span>
+                    <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded border border-gray-200">
+                        <button
+                            onClick={() => setAdjectiveMode('varied')}
+                            className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${adjectiveMode === 'varied' ? 'bg-white shadow-sm text-[var(--color-main)]' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            Varied
+                        </button>
+                        <button
+                            onClick={() => setAdjectiveMode('fixed')}
+                            className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${adjectiveMode === 'fixed' ? 'bg-white shadow-sm text-[var(--color-main)]' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            Fixed
+                        </button>
+                    </div>
+                </div>
+                {adjectiveMode === 'fixed' ? (
+                    <select
+                        value={fixedAdjective}
+                        onChange={(e) => setFixedAdjective(e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded text-xs font-mono focus:outline-none focus:border-[var(--color-main)]"
+                    >
+                        <option value="no_adjective">— neutral (no adjective)</option>
+                        {['ambitious', 'assertive', 'committed', 'compassionate', 'confident',
+                          'considerate', 'decisive', 'determined', 'emotional', 'gentle',
+                          'honest', 'intellectual', 'modest', 'outspoken', 'pleasant',
+                          'self-confident', 'sensitive', 'stubborn', 'supportive', 'unreasonable',
+                        ].map(adj => (
+                            <option key={adj} value={adj}>{adj}</option>
+                        ))}
+                    </select>
+                ) : (
+                    <p className="text-[10px] text-gray-400 italic">Each image uses a different random adjective from the dataset.</p>
+                )}
+            </div>
+
             {/* Generate Button (Global if Compare) */}
             {mode === 'compare' && (
                 <button
@@ -250,7 +294,7 @@ const ImaginationInspector = () => {
 
             {/* Absence Report(s) & Reality Matches */}
             <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto custom-scrollbar pt-2 border-t border-gray-100">
-                {alignmentsA.length > 0 && <RealityMatches alignments={alignmentsA} label={mode === 'compare' ? 'Side A' : ''} />}
+                {alignmentsA.length > 0 && <RealityMatches alignments={alignmentsA} label={mode === 'compare' ? 'Side A' : ''} datasetName={datasetName} />}
 
                 {reportA && (
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden shrink-0">
@@ -259,7 +303,7 @@ const ImaginationInspector = () => {
                     </div>
                 )}
 
-                {alignmentsB.length > 0 && <RealityMatches alignments={alignmentsB} label="Side B" />}
+                {alignmentsB.length > 0 && <RealityMatches alignments={alignmentsB} label="Side B" datasetName={datasetName} />}
 
                 {mode === 'compare' && reportB && (
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden shrink-0">
@@ -281,7 +325,7 @@ const ImaginationInspector = () => {
     return (
         <ToolLayout
             title="Imagination Inspector"
-            subtitle="Probing the absences and boundaries of the latent space"
+            subtitle="What does AI imagine when asked to picture a profession?"
             mainContent={mainContent}
             sideContent={sideContent}
         />

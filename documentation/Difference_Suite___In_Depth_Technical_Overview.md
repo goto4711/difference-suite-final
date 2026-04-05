@@ -40,17 +40,16 @@ The **Difference Suite** is a fully client-side React web application designed f
 **Models used:**
 | Model | Used by |
 |---|---|
-| `all-MiniLM-L6-v2` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor |
-| `LaMini-Flan-T5-783M` | Semantic Oracle (generative text) |
-| `vit-gpt2-image-captioning` | Visual Storyteller (image captioning) |
+| `bge-small-en-v1.5` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor, Detail Extractor |
+| `SmolLM2-135M-Instruct` | Semantic Oracle (generative text) |
+| `Florence-2-Base-ft` | Visual Storyteller (image captioning) |
 | `whisper-tiny.en` | Audio capture / transcription |
-| `CLIP` | Imagination Inspector, Networked Narratives (multimodal alignment) |
+| `CLIP` | Imagination Inspector (zero-shot demographic classification, dataset alignment), Networked Narratives (multimodal alignment) |
 
 **TensorFlow.js Stack:**
 | Library | Version | Used by |
 |---|---|---|
 | `@tensorflow/tfjs` | ^4.22.0 | Noise Predictor, Discontinuity Detector (custom training) |
-| `@tensorflow-models/mobilenet` | ^2.1.1 | Ambiguity Amplifier, Glitch Detector, Latent Navigator |
 | `@tensorflow-models/knn-classifier` | ^1.2.6 | Ambiguity Amplifier, Glitch Detector |
 
 ### 2.3 Visualization Libraries
@@ -64,7 +63,7 @@ The **Difference Suite** is a fully client-side React web application designed f
 ### 2.4 NLP
 
 - `compromise` ^14.14.4 — lightweight NLP for entity extraction (people, places, orgs)
-- Universal Sentence Encoder — semantic document clustering
+- `bge-small-en-v1.5` — semantic embeddings and document clustering
 
 ---
 
@@ -230,11 +229,11 @@ When unauthenticated:
 **Purpose:** Surfaces classification ambiguity in image and text predictions.
 
 **How it works:**
-- **Image mode:** Loads MobileNet (TensorFlow.js). Runs classification and highlights low-confidence predictions.
-- **Text mode:** Embeds text using `all-MiniLM-L6-v2` (Transformers.js), then uses a KNN classifier to categorise input between two user-defined concepts.
+- **Image mode:** Uses ResNet-50 (via TransformersClient). Runs classification and highlights low-confidence predictions.
+- **Text mode:** Embeds text using `bge-small-en-v1.5` (Transformers.js), then uses a KNN classifier to categorise input between two user-defined concepts.
 - Highlights "borderline" cases where the model confidence is near 50%.
 
-**Key dependencies:** `@tensorflow-models/mobilenet`, `@tensorflow-models/knn-classifier`, `@huggingface/transformers`
+**Key dependencies:** `@tensorflow-models/knn-classifier`, `@huggingface/transformers`
 
 ---
 
@@ -243,12 +242,12 @@ When unauthenticated:
 **Purpose:** Maps data items across different semantic and cultural contexts.
 
 **How it works:**
-- Embeds collection items using `all-MiniLM-L6-v2`.
+- Embeds collection items using `bge-small-en-v1.5`.
 - Computes cosine similarity between a query (text or image) and multiple user-defined "contexts".
 - Renders a **radial D3 visualization** showing the relative position of items across contexts.
 - Enables multi-contextual comparison of the same data item.
 
-**Key dependencies:** `@huggingface/transformers` (all-MiniLM-L6-v2), D3.js
+**Key dependencies:** `@huggingface/transformers` (bge-small-en-v1.5), D3.js
 
 ---
 
@@ -284,7 +283,7 @@ When unauthenticated:
 **Purpose:** Clusters texts and extracts marginal details, with a Holocaust research focus.
 
 **How it works:**
-- Processes texts via Universal Sentence Encoder to generate embeddings.
+- Processes texts via `bge-small-en-v1.5` to generate embeddings.
 - Clusters semantically similar documents.
 - Highlights **outliers and unique details** that fall outside dominant clusters.
 - Demo texts focus on Holocaust resistance narratives.
@@ -310,8 +309,8 @@ When unauthenticated:
 **Purpose:** Identifies inputs that confuse trained classifiers ("glitches").
 
 **How it works:**
-- **Image mode:** MobileNet + KNN classifier trained on user collections.
-- **Text mode:** `all-MiniLM-L6-v2` embeddings + KNN classifier.
+- **Image mode:** ResNet-50 + KNN classifier trained on user collections.
+- **Text mode:** `bge-small-en-v1.5` embeddings + KNN classifier.
 - Trains the classifier on labeled collections, then tests new inputs.
 - Highlights items with low confidence or misclassification — the "glitches".
 
@@ -321,16 +320,19 @@ When unauthenticated:
 
 ### Tool 7: Imagination Inspector
 **Route:** `/imagination-inspector`  
-**Purpose:** Explores the boundaries and biases of generative AI imagination.
+**Purpose:** Explores the boundaries and biases of generative AI imagination by surfacing real Stable Diffusion outputs for professional archetypes.
 
 **How it works:**
-- Simulates generative AI outputs for user-defined prompts.
-- Analyzes bias in generated content via a custom `BiasAnalyzer`.
-- Generates **"absence reports"** highlighting what is missing from representations.
-- Uses **CLIP multimodal alignment** to match prompts to dataset images.
-- Compares standard vs. bias-aware generation with dataset grounding.
+- Fetches real AI-generated images from the **Stable Bias dataset** (`stable-bias/professions` on HuggingFace) — 94,500 images across 146 professions, generated by Stable Diffusion v1.4/v2 and DALL-E 2.
+- Classifies each image's demographics (gender, race, age, setting) via **CLIP zero-shot classification** — one batched call per image across all categories.
+- Analyzes bias in the classified tags via a custom `BiasAnalyzer`.
+- Generates **"Void Reports"** (absence reports) highlighting demographics that exist in reality but are absent from the model's output.
+- Uses **CLIP multimodal alignment** to match prompts to user dataset images (Dataset Alignment sidebar).
+- Falls back to SmolLM2-135M text simulation for prompts that don't match the 146 known professions.
+- Supports single and comparison modes for side-by-side prompt analysis.
+- **Adjective mode toggle:** Users can switch between *Varied* (each image uses a different randomly sampled adjective from the dataset's 21 real adjectives) and *Fixed* (all images use the same chosen adjective, enabling controlled comparisons). Fixed mode uses direct block-offset addressing against the HuggingFace Dataset Viewer API rather than filtered queries, since the API does not support compound `WHERE` clauses. The 21 adjectives are: `ambitious`, `assertive`, `committed`, `compassionate`, `confident`, `considerate`, `decisive`, `determined`, `emotional`, `gentle`, `honest`, `intellectual`, `modest`, `no_adjective` (neutral baseline), `outspoken`, `pleasant`, `self-confident`, `sensitive`, `stubborn`, `supportive`, `unreasonable`.
 
-**Key dependencies:** `@huggingface/transformers` (CLIP), custom `GeneratorEngine`, `BiasAnalyzer`
+**Key dependencies:** `@huggingface/transformers` (CLIP ViT-B/32), HuggingFace Dataset Viewer API, custom `GeneratorEngine`, `BiasAnalyzer`
 
 ---
 
@@ -339,12 +341,12 @@ When unauthenticated:
 **Purpose:** Explores the "in-between" spaces between data categories in latent space.
 
 **How it works:**
-- **Image mode:** Uses MobileNet to interpolate between visual categories.
-- **Text mode:** Uses `all-MiniLM-L6-v2` to navigate semantic vectors between two concepts.
+- **Image mode:** Uses ResNet-50 to interpolate between visual categories.
+- **Text mode:** Uses `bge-small-en-v1.5` to navigate semantic vectors between two concepts.
 - Generates **"hidden concepts"** found in low-density areas of the latent space.
 - Provides real-time visualization of the interpolation path.
 
-**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (all-MiniLM-L6-v2)
+**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (bge-small-en-v1.5)
 
 ---
 
@@ -368,12 +370,12 @@ When unauthenticated:
 
 **How it works:**
 - **Autoencoder Architecture:** Trains a custom TensorFlow.js autoencoder to reconstruct data through a bottleneck layer.
-- **Text mode:** `all-MiniLM-L6-v2` provides 512-dimensional semantic input for the autoencoder.
-- **Image mode:** Uses raw pixel data or MobileNet features.
+- **Text mode:** `bge-small-en-v1.5` provides semantic embeddings as input for the autoencoder.
+- **Image mode:** Uses raw pixel data or ResNet-50 features.
 - **Residual Analysis:** Visualizes the "noise" (original − reconstructed) as a spectral heatmap.
 - Demonstrates what the model "forgets" or "misinterprets" during compression.
 
-**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (all-MiniLM-L6-v2)
+**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (bge-small-en-v1.5)
 
 ---
 
@@ -395,14 +397,14 @@ When unauthenticated:
 **Purpose:** Local generative intelligence for concept exploration and semantic expansion.
 
 **How it works:**
-- Runs **LaMini-Flan-T5-783M** locally in the browser via WebGPU/WASM.
+- Runs **SmolLM2-135M-Instruct** locally in the browser via WebGPU/WASM.
 - Three interactive modes:
   - **Define:** Explains concepts clearly
   - **Expand:** Lists related concepts and hidden connections
   - **Tangent:** Generates creative, abstract metaphors
 - Integrates with the user's text corpus for contextual analysis.
 
-**Key dependencies:** `@huggingface/transformers`, `LaMini-Flan-T5-783M`
+**Key dependencies:** `@huggingface/transformers`, `SmolLM2-135M-Instruct`
 
 ---
 
@@ -416,7 +418,7 @@ When unauthenticated:
 - Generates natural language captions describing image content.
 - Maintains a story history of the last 10 captions.
 
-**Key dependencies:** `@huggingface/transformers`, `vit-gpt2-image-captioning`
+**Key dependencies:** `@huggingface/transformers`, `Florence-2-Base-ft`
 
 ---
 
@@ -495,13 +497,12 @@ Single-page app rewrite — all routes served from `index.html`.
 
 | Model | Tools |
 |---|---|
-| `all-MiniLM-L6-v2` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor, Ambiguity Amplifier (text) |
-| `MobileNet` | Ambiguity Amplifier (image), Glitch Detector (image), Latent Navigator (image), Noise Predictor (image) |
+| `bge-small-en-v1.5` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor, Ambiguity Amplifier (text), Detail Extractor |
+| `ResNet-50` | Ambiguity Amplifier (image), Glitch Detector (image), Latent Navigator (image), Noise Predictor (image) |
 | `KNN Classifier` | Ambiguity Amplifier, Glitch Detector |
-| `CLIP` | Imagination Inspector, Networked Narratives |
-| `LaMini-Flan-T5-783M` | Semantic Oracle |
-| `ViT-GPT2` | Visual Storyteller |
+| `CLIP ViT-B/32` | Imagination Inspector (zero-shot demographic classification + dataset alignment), Networked Narratives |
+| `SmolLM2-135M-Instruct` | Semantic Oracle, Imagination Inspector (fallback for unknown professions) |
+| `Florence-2-Base-ft` | Visual Storyteller |
 | `Whisper-tiny.en` | Audio input (dashboard) |
-| `Universal Sentence Encoder` | Detail Extractor |
 | `TF.js Autoencoder (custom)` | Noise Predictor |
 | `TF.js Anomaly Detection (custom)` | Discontinuity Detector |

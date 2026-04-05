@@ -2,7 +2,7 @@ import { registerHandler } from '../taskHandlers';
 import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
 
 /**
- * Handler for image-to-text models (e.g. Florence-2, vit-gpt2).
+ * Handler for image-to-text models (e.g. Florence-2).
  */
 registerHandler({
   task: 'image-to-text',

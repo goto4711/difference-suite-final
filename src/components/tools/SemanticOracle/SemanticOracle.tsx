@@ -106,7 +106,7 @@ const SemanticOracle = () => {
                     </div>
                     <div>
                         <h2 className="text-xl font-bold text-main tracking-tight">The Semantic Oracle</h2>
-                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Local Generative Intelligence • LaMini-Flan-T5</p>
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Local Generative Intelligence • SmolLM2-135M</p>
                     </div>
                 </div>
             </div>

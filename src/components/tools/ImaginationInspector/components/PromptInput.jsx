@@ -1,7 +1,12 @@
 import React from 'react';
-import { Search, Info, Mic } from 'lucide-react';
+import { Search, Mic } from 'lucide-react';
 
-const SUPPORTED_KEYWORDS = ["CEO", "Nurse", "Terrorist", "Professor", "Criminal", "Worker"];
+// A curated sample of professions drawn from the Stable Bias dataset (stable-bias/professions)
+// so suggestion chips are guaranteed to return real images.
+const SUGGESTED_PROFESSIONS = [
+    'doctor', 'nurse', 'CEO', 'software developer', 'lawyer',
+    'teacher', 'firefighter', 'janitor', 'pilot', 'therapist',
+];
 
 const PromptInput = ({ prompt, setPrompt, onGenerate, loading, label = "Probe the Latent Space", onMicClick }) => {
     return (
@@ -10,10 +15,6 @@ const PromptInput = ({ prompt, setPrompt, onGenerate, loading, label = "Probe th
                 <label className="text-xs font-bold uppercase text-[var(--color-main)] opacity-70 tracking-widest">
                     {label}
                 </label>
-                <div className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 flex items-center gap-1">
-                    <Info size={10} />
-                    <span>SIMULATION MODE (Demo)</span>
-                </div>
             </div>
 
             <div className="flex gap-2">
@@ -21,7 +22,7 @@ const PromptInput = ({ prompt, setPrompt, onGenerate, loading, label = "Probe th
                     type="text"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder='Enter a concept...'
+                    placeholder='Enter a profession...'
                     className="flex-1 p-3 border border-gray-300 rounded font-mono text-sm focus:outline-none focus:border-[var(--color-main)] focus:ring-1 focus:ring-[var(--color-main)] transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && onGenerate && onGenerate()}
                 />
@@ -43,10 +44,10 @@ const PromptInput = ({ prompt, setPrompt, onGenerate, loading, label = "Probe th
                 )}
             </div>
 
-            {/* Keywords Helper */}
+            {/* Profession suggestion chips — all guaranteed to match Stable Bias dataset */}
             <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-[10px] font-bold text-gray-400 uppercase">Try:</span>
-                {SUPPORTED_KEYWORDS.map(kw => (
+                {SUGGESTED_PROFESSIONS.map(kw => (
                     <button
                         key={kw}
                         onClick={() => setPrompt(kw)}
@@ -58,7 +59,7 @@ const PromptInput = ({ prompt, setPrompt, onGenerate, loading, label = "Probe th
             </div>
 
             <p className="text-[10px] text-gray-400 italic">
-                * Note: This demo uses pre-generated archetypes to simulate common model biases without hitting a live GPU.
+                Searches the <strong>Stable Bias</strong> dataset (Bianchi et al., 2023) — real Stable Diffusion outputs for 146 professions. Unknown terms fall back to language model simulation.
             </p>
         </div>
     );

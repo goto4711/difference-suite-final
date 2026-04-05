@@ -56,13 +56,13 @@ const LatentSpaceNavigator = () => {
             try {
                 await tf.ready();
 
-                // 1. Load Visual Model (MobileNet) - approx 30% of work
+    // 1. Load Visual Model (ResNet-50) - approx 30% of work
                 setInitStage('Synthesizing Visual Intelligence');
                 setInitProgress(0.1);
                 await modelManager.loadModel();
                 setInitProgress(0.3);
 
-                // 2. Load Semantic Model & Pre-compute Dictionary (MiniLM) - approx 70% of work
+    // 2. Load Semantic Model & Pre-compute Dictionary (BGE) - approx 70% of work
                 await latentTextManager.loadModel((stage, progress) => {
                     setInitStage(`Synthesizing ${stage}`);
                     // Map 0-1 from latentTextManager to 0.3-1.0 range

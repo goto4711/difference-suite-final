@@ -96,15 +96,15 @@ The proposal anticipated a browser-based app using JavaScript deep learning (Ten
 - **State & routing:** Zustand (single global store), React Router 7.
 - **Deep learning (browser-native):**
   - Transformers.js + `@huggingface/transformers` providing:
-    - `all‑MiniLM‑L6‑v2` for text embeddings across multiple tools.
-    - `LaMini‑Flan‑T5‑783M` for local generative text in Semantic Oracle.
-    - `vit‑gpt2-image-captioning` for Visual Storyteller.
-    - CLIP models for Imagination Inspector and Networked Narratives (Visual Synapse).
+    - `bge‑small‑en‑v1.5` for text embeddings across multiple tools.
+    - `SmolLM2‑135M‑Instruct` for local generative text in Semantic Oracle.
+    - `Florence‑2‑Base‑ft` for Visual Storyteller.
+    - CLIP models for Imagination Inspector (zero-shot demographic classification of Stable Bias images) and Networked Narratives (Visual Synapse).
     - `whisper‑tiny.en` for browser‐based speech recognition (dashboard capture).
   - TensorFlow.js for custom models:
     - Autoencoders (Noise Predictor).
     - Time-series anomaly detection (Discontinuity Detector).
-    - MobileNet-based features where efficiency is crucial (Ambiguity Amplifier, Glitch Detector image mode).
+    - ResNet‑50-based features where efficiency is crucial (Ambiguity Amplifier, Glitch Detector image mode).
 
 A central **TransformersManager** singleton—corresponding to the proposal’s idea of a shared methodological commons—initialises and caches models lazily on first use, then shares them across tools. This preserves computational resources in typical humanities environments and ensures that sensitive archival data never leaves the local machine. [0][3]
 
@@ -138,7 +138,7 @@ In what follows we align the suite’s tools explicitly with the six keyword-bas
 
 The proposal’s first case study on **detail** addresses Holocaust archives through hierarchical representation learning and knowledge graphs to surface marginalised stories of resistance. [0][9]
 
-- **Detail Extractor** uses `all‑MiniLM‑L6‑v2` embeddings to cluster texts (e.g. Jewish Council records, testimonies) and identify **outliers**—documents that resist dominant patterns. These outliers are flagged as candidate sites for close reading and “close distant reading” of resistance narratives. [0][2]
+- **Detail Extractor** uses `bge‑small‑en‑v1.5` embeddings to cluster texts (e.g. Jewish Council records, testimonies) and identify **outliers**—documents that resist dominant patterns. These outliers are flagged as candidate sites for close reading and “close distant reading” of resistance narratives. [0][2]
 - **Networked Narratives** uses entity extraction and relation visualisation, matching the plan to construct knowledge graphs and relationship extraction pipelines over EHRI collections. [0][9]
 
 Together, these tools reconfigure “profiling” into detailed narrative reconstruction, aligning closely with the ERC’s description of the first case study and its commitment to using deep learning to retell marginalised stories rather than to generalise away from them. [0][9]
@@ -147,7 +147,7 @@ Together, these tools reconfigure “profiling” into detailed narrative recons
 
 The second case study on **relationality** explores vectorisation and attention as new forms of multi-dimensional relationality for Holocaust collections, while remaining wary of total quantification. [0][9]
 
-- **Context Weaver** uses `all‑MiniLM‑L6‑v2` to map documents across multiple contexts (e.g. survival, persecution, testimony), making explicit how embedding vectors aggregate or split contexts at different stages. [0]
+- **Context Weaver** uses `bge‑small‑en‑v1.5` to map documents across multiple contexts (e.g. survival, persecution, testimony), making explicit how embedding vectors aggregate or split contexts at different stages. [0]
 - **Deep Vector Mirror** visualises embeddings and attention weights, providing the “software-studies inspired walkthrough” perspective on how vectors relate EHRI collection items across large national archives and micro-archives. [0][9][12]
 - **Deep Time** exposes the mathematical constraints of algorithmic temporality, simulating how causal attention masks and diffusion schedules enforce relation through entropy and memory decay.
 
@@ -175,8 +175,8 @@ Both tools support reclaiming ambiguity and fragility in identification as resou
 
 The fifth case study on **imagination** focuses on generative AI trained on incidental archives, such as leaked datasets or scraped documents never intended for model training. [10]
 
-- **Imagination Inspector** can be pointed at incidental corpora known or suspected to feed generative models (e.g. medical records, EU documents). By testing prompts and visualising CLIP alignment and absences, it helps document what generative systems can and cannot produce, echoing the case study’s interest in distinguishing “possible” from “impossible” outputs and representing absences and losses in generative AI’s ethico-politics. [10]
-- **Visual Storyteller**, by running ViT‑GPT2 locally over the user’s incidental images, displays how generative captioning re-narrates them and what it cannot express. It thus connects to the case study’s aim to work with ARIAS artists on re-imagining latent spaces in between dominant generative spaces. [10]
+- **Imagination Inspector** can be pointed at incidental corpora known or suspected to feed generative models (e.g. medical records, EU documents). It fetches real Stable Diffusion outputs from the **Stable Bias** dataset (Bianchi et al., 2023) for 146 professional archetypes and uses CLIP zero-shot classification to assign demographic tags, then visualises absences via the Void Report. An **adjective mode toggle** lets researchers switch between *Varied* mode (each image drawn from a different randomly sampled adjective, e.g. “ambitious doctor”, “confident doctor”) and *Fixed* mode (all images share one controlled adjective from the dataset’s 21 real descriptors, including a neutral “no_adjective” baseline). This enables both exploratory bias surfacing and controlled comparisons that isolate the effect of individual prompt modifiers. This helps document what generative systems can and cannot produce, echoing the case study’s interest in distinguishing “possible” from “impossible” outputs and representing absences and losses in generative AI’s ethico-politics. [10]
+- **Visual Storyteller**, by running Florence‑2 locally over the user’s incidental images, displays how generative captioning re-narrates them and what it cannot express. It thus connects to the case study’s aim to work with ARIAS artists on re-imagining latent spaces in between dominant generative spaces. [10]
 
 These tools give practical form to an imagination case study that wants to connect interventionist art, generative AI oversight and counter-archiving of incidental training data. [10]
 

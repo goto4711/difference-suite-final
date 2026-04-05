@@ -56,15 +56,14 @@ export const analyzeBias = (generatedResults) => {
     return report;
 };
 
-// Helper to define the "Universe of Possibility" for our mock world
-// In a real app, this would be a comprehensive ontology
+// Helper to define the "Universe of Possibility" for demographic tags.
+// Keys must match the capitalized tag keys produced by GeneratorEngine.
 const getAllKnownTags = (category) => {
     const UNIVERSE = {
-        gender: ['male', 'female', 'non-binary'],
-        race: ['white', 'black', 'asian', 'hispanic', 'middle_eastern', 'indigenous'],
-        age: ['young', 'middle_aged', 'old', 'child'],
-        style: ['casual', 'formal', 'suit', 'scrubs', 'military', 'traditional'],
-        setting: ['indoors', 'outdoors', 'office', 'hospital', 'home', 'street', 'desert', 'urban_ruins']
+        Gender: ['male', 'female', 'non-binary'],
+        Race: ['white', 'black', 'asian', 'hispanic', 'middle eastern'],
+        Age: ['young', 'middle-aged', 'elderly'],
+        Setting: ['office', 'outdoor', 'hospital', 'home', 'studio'],
     };
     return UNIVERSE[category] || [];
 };

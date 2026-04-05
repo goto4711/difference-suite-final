@@ -2,7 +2,7 @@ import { registerHandler } from '../taskHandlers';
 import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
 
 /**
- * Handler for text-generation models (e.g. SmolLM2, LaMini-Flan-T5).
+ * Handler for text-generation models (e.g. SmolLM2-135M-Instruct).
  */
 registerHandler({
   task: 'text-generation',

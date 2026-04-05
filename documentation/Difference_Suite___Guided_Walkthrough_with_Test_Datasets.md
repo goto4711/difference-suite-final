@@ -94,7 +94,7 @@ Navigate to `/` (the home screen). You'll see:
 ### Image mode
 
 1. Navigate to **Ambiguity Amplifier** → select **Image** mode
-2. Wait for MobileNet to load
+2. Wait for ResNet-50 to load
 3. Select `owl.jpg` — observe the top-5 classification probabilities
 4. Select `eagle.jpg` — compare confidence scores
 5. Select `squirrel.jpg` — note if the model is uncertain between "squirrel" and "chipmunk" or similar
@@ -152,7 +152,7 @@ Navigate to `/` (the home screen). You'll see:
 1. Navigate to **Latent Navigator** → **Image** mode
 2. Set **Start** category: `cat` (upload `cat.jpg`)
 3. Set **End** category: `tiger` (upload `tiger.jpg`)
-4. Click **Navigate** — the tool interpolates through MobileNet's feature space
+4. Click **Navigate** — the tool interpolates through ResNet-50's feature space
 5. Observe the intermediate "hidden concepts" generated along the path
 
 ### Text mode
@@ -270,7 +270,7 @@ Navigate to `/` (the home screen). You'll see:
 ### Text mode
 
 1. Navigate to **Noise Predictor** → **Text** mode
-2. Load `0001.txt` — the tool embeds it via `all-MiniLM-L6-v2` (512 dimensions)
+2. Load `0001.txt` — the tool embeds it via `bge-small-en-v1.5`
 3. The autoencoder compresses and reconstructs the embedding
 4. The **residual heatmap** shows the difference: original − reconstructed
 5. Repeat with `0327.txt` — compare the residual patterns
@@ -292,7 +292,7 @@ Navigate to `/` (the home screen). You'll see:
 
 **Route:** `/semantic-oracle`  
 **Dataset:** `holocaust-texts/` (as contextual corpus)  
-**Model:** LaMini-Flan-T5-783M (large — allow 1–2 min to load)
+**Model:** SmolLM2-135M-Instruct (loads on first use — allow ~30–60s)
 
 ### Steps
 
@@ -315,22 +315,28 @@ Navigate to `/` (the home screen). You'll see:
 ## Step 12: Imagination Inspector — Generative Bias
 
 **Route:** `/imagination-inspector`  
-**Dataset:** `images/` (as grounding corpus for CLIP)
+**Dataset:** `images/` (as grounding corpus for Dataset Alignment sidebar)
 
 ### Steps
 
 1. Navigate to **Imagination Inspector**
-2. Load all 11 animal images as your visual corpus
-3. Enter a prompt: `"a dangerous animal"`
-4. Run **Standard generation** — observe which images CLIP aligns with this prompt
-5. Run **Bias-aware generation** — observe the absence report
-6. Try `"a gentle animal"` — compare which images are surfaced vs. absent
-7. Try `"a wild animal in its natural habitat"` — note which species are over/under-represented
+2. Load all 11 animal images as your visual corpus (these populate the Dataset Alignment sidebar)
+3. Enter a profession prompt: `"doctor"` — the tool fetches real Stable Diffusion images from the **Stable Bias** dataset
+4. Observe the 5 images returned — each with a different randomly selected adjective (e.g. "ambitious doctor", "confident doctor") in the default **Varied** mode
+5. Hover over each image to inspect CLIP-classified demographic tags (Gender, Race, Age, Setting)
+6. Check the **Void Report** — it highlights demographics that are absent from the model's outputs
+7. Try `"nurse"` and compare the demographic distribution vs. `"CEO"`
+8. Try `"software developer"` — note the gender skew in the Void Report
+9. Switch the **Adjective** toggle to **Fixed** and select `"no_adjective"` (neutral baseline) — this removes adjective influence and surfaces raw profession-level bias
+10. Switch to a different fixed adjective (e.g. `"compassionate"`) and compare how the demographic distribution shifts
+11. Try a non-profession prompt like `"a dangerous animal"` — this falls back to SmolLM2 text simulation
 
 ### What to observe
-- The **absence report** highlights what the model's imagination systematically excludes
-- CLIP's alignment reveals the model's implicit associations between language and visual categories
-- `grasshopper.jpg` and `octopus.jpg` are likely to be under-represented — they sit at the margins of typical training data
+- The **Void Report** highlights what the model's imagination systematically excludes (e.g. "female" absent for certain professions)
+- Different professions show dramatically different demographic skews — this is the dataset's core finding
+- CLIP's **Dataset Alignment** (sidebar) reveals semantic associations between the prompt and your loaded images
+- Use **Fixed adjective mode** with `"no_adjective"` to isolate raw profession-level bias; switch adjectives to see how prompt modifiers shift demographic distributions
+- SmolLM2 fallback for non-profession prompts produces text-only simulation with no real images
 
 ---
 
@@ -399,7 +405,7 @@ Navigate to `/` (the home screen). You'll see:
 ### "What does AI see in images?"
 1. Load `images/` → **Visual Storyteller** (generate captions)
 2. → **Ambiguity Amplifier** (find low-confidence classifications)
-3. → **Imagination Inspector** (test CLIP alignment with prompts)
+3. → **Imagination Inspector** (test profession prompts against Stable Bias dataset)
 4. → **Latent Navigator** (interpolate between animal categories)
 
 ### "How does AI draw the line between political and non-political speech?"
@@ -415,7 +421,7 @@ Navigate to `/` (the home screen). You'll see:
 
 ### "How do text and image relate in AI space?"
 1. Load `visual_synapse_test/` → **Networked Narratives** (Visual Synapse)
-2. Load `images/` + `holocaust-texts/` → **Imagination Inspector** (CLIP grounding)
+2. Load `images/` + `holocaust-texts/` → **Imagination Inspector** (Stable Bias images + CLIP demographic classification)
 3. → **Context Weaver** (cross-modal context mapping)
 
 ---
@@ -425,13 +431,13 @@ Navigate to `/` (the home screen). You'll see:
 | Tool | Model load time (first use) | Processing time per item |
 |---|---|---|
 | Visual Storyteller | ~30s (ViT-GPT2) | ~5s per image |
-| Semantic Oracle | ~60–120s (LaMini-Flan-T5-783M) | ~10–20s per query |
-| Ambiguity Amplifier | ~10s (MobileNet) | ~1s per item |
-| Glitch Detector | ~10s (MobileNet/MiniLM) | ~2s per item |
-| Context Weaver | ~15s (MiniLM) | ~2s per item |
+| Semantic Oracle | ~30–60s (SmolLM2-135M-Instruct) | ~5–10s per query |
+| Ambiguity Amplifier | ~10s (ResNet-50) | ~1s per item |
+| Glitch Detector | ~10s (ResNet-50/BGE) | ~2s per item |
+| Context Weaver | ~15s (BGE) | ~2s per item |
 | Networked Narratives | ~5s (Compromise.js) + ~20s (CLIP) | ~3s per text |
 | Noise Predictor | ~15s (TF.js autoencoder) | ~5s per item |
-| Deep Vector Mirror | ~15s (MiniLM) | ~2s per item |
+| Deep Vector Mirror | ~15s (BGE) | ~2s per item |
 
 > All models run locally in-browser via WebGPU/WASM. **No data is sent to any server.**  
 > First load downloads model weights; subsequent uses are cached.
