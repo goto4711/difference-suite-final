@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:consolidated": "npm run build && cd gemma-suite && npm install && npm run build && cd .. && mkdir -p dist/difference-suite-large-models && cp -r gemma-suite/dist/* dist/difference-suite-large-models/",
     "lint": "eslint .",
     "preview": "vite preview"
   },

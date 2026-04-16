@@ -11,7 +11,7 @@ const Sidebar = () => {
             <div className="p-6 border-b border-[#0000000d] flex justify-center">
                 <a href="https://deep-culture.org/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
                     <img
-                        src="https://deep-culture.org/wp-content/themes/deepculture/img/deep-culture-logo.png"
+                        src="/deep-culture-logo.png"
                         alt="Deep Culture"
                         className="h-20 w-auto"
                     />
@@ -53,16 +53,6 @@ const Sidebar = () => {
                         </Link>
                     );
                 })}
-
-                <div className="nav-group-label mt-8 pl-8 bg-white">Access</div>
-                
-                <a
-                    href="/difference-suite-large-models/"
-                    className="flex items-center gap-4 px-8 py-3 text-sm font-medium text-main/40 hover:bg-main/5 hover:text-main border-r-4 border-transparent transition-all"
-                >
-                    <div className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-[10px] font-bold">G</div>
-                    Large Models Suite
-                </a>
             </div>
         </div>
     );
