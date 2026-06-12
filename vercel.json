@@ -39,6 +39,10 @@
         {
             "source": "/difference-suite-large-models/:path*",
             "destination": "/difference-suite-large-models/index.html"
+        },
+        {
+            "source": "/((?!assets/|images/|.*\\.).*)",
+            "destination": "/index.html"
         }
     ]
 }
