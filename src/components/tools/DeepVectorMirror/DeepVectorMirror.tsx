@@ -5,7 +5,6 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { Info, Cpu, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
-import ContestButton from '../../contestation/ContestButton';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type AnalysisMode = 'image' | 'text';
@@ -299,19 +298,6 @@ const DeepVectorMirror = () => {
                         <p className="text-xs text-text-muted max-w-2xl mx-auto">
                             <strong>Left:</strong> The raw input as perceived by humans. <strong>Right:</strong> The internal mathematical representation (embedding) used by the AI. Note how the "Context Shift" alters the representation even if the input stays the same.
                         </p>
-                        {vector.length > 0 && (
-                            <div className="mt-2 flex justify-center">
-                                <ContestButton
-                                    toolId="DeepVectorMirror"
-                                    outputSummary={`Item: ${selectedItem.name} (${mode}) — noise ${(noiseLevel * 100).toFixed(0)}%, context shift ${(contextLevel * 100).toFixed(0)}%`}
-                                    settings={{
-                                        mode,
-                                        noise: Number(noiseLevel.toFixed(2)),
-                                        contextShift: Number(contextLevel.toFixed(2)),
-                                    }}
-                                />
-                            </div>
-                        )}
                     </div>
                 )}
             </div>

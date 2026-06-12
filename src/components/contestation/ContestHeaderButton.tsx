@@ -23,7 +23,7 @@ const ContestHeaderButton = () => {
             toolId={current.toolId}
             outputSummary={current.outputSummary}
             settings={current.settings}
-            label="Contest current output"
+            label="Contest"
         />
     );
 };

@@ -1,37 +1,17 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { displayCategory } from '../utils/categoryDisplay';
-import ContestButton from '../../../contestation/ContestButton';
-
-const summarizeReport = (report) => {
-    const lines = [`Total imagined: ${report.totalImages}`];
-    for (const [category, data] of Object.entries(report.categories)) {
-        const present = data.present
-            .map((p) => `${p.tag} ${Math.round(p.percentage)}%`)
-            .join(', ') || '—';
-        const absent = data.absent.length > 0 ? data.absent.join(', ') : '—';
-        lines.push(`${displayCategory(category)} — present: ${present}; absent: ${absent}`);
-    }
-    return lines.join('\n');
-};
 
 const AbsenceReport = ({ report }) => {
     if (!report) return null;
 
     return (
         <div className="card flex flex-col gap-6">
-            <div className="flex items-center justify-between border-b-2 border-[var(--color-main)] pb-2 gap-2">
-                <div className="flex items-center gap-2">
-                    <AlertTriangle className="text-[var(--color-main)]" />
-                    <h2 className="text-xl font-bold uppercase text-[var(--color-main)]">
-                        The Void Report
-                    </h2>
-                </div>
-                <ContestButton
-                    toolId="ImaginationInspector"
-                    outputSummary={summarizeReport(report)}
-                    settings={{ scope: 'void-report', totalImages: report.totalImages }}
-                />
+            <div className="flex items-center gap-2 border-b-2 border-[var(--color-main)] pb-2">
+                <AlertTriangle className="text-[var(--color-main)]" />
+                <h2 className="text-xl font-bold uppercase text-[var(--color-main)]">
+                    The Void Report
+                </h2>
             </div>
             <p className="text-sm opacity-70 italic max-w-2xl">
                 What the model <strong>fails</strong> to imagine is as important as what it sees.

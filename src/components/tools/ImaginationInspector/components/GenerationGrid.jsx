@@ -1,20 +1,6 @@
 import React from 'react';
 import { User, AlertTriangle } from 'lucide-react';
 import { displayCategory } from '../utils/categoryDisplay';
-import ContestButton from '../../../contestation/ContestButton';
-
-const summarizeCard = (item) => {
-    const tagLines = Object.entries(item.tags || {}).map(([k, v]) => {
-        const detail = item.tagDetails?.[k];
-        const margin = detail?.margin !== undefined ? ` (margin ${(detail.margin * 100).toFixed(0)}%)` : '';
-        return `${displayCategory(k)}: ${v}${margin}`;
-    });
-    const adj = item.adjective ? ` · adjective: ${item.adjective}` : '';
-    return [
-        `Profession: ${item.prompt || '(unknown)'}${adj}`,
-        ...tagLines,
-    ].join('\n');
-};
 
 const GenerationGrid = ({ results }) => {
     if (!results || results.length === 0) {
@@ -136,17 +122,6 @@ const GenerationGrid = ({ results }) => {
                                 {item.adjective ? item.adjective : `Sample ${item.id + 1}`}
                             </div>
                             <div className="h-[1px] flex-1 bg-gray-100"></div>
-                        </div>
-                        <div className="flex justify-center">
-                            <ContestButton
-                                toolId="ImaginationInspector"
-                                outputSummary={summarizeCard(item)}
-                                settings={{
-                                    profession: String(item.prompt || ''),
-                                    adjective: String(item.adjective || 'none'),
-                                }}
-                                compact
-                            />
                         </div>
                     </div>
                 ))}

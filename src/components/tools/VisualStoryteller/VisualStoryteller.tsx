@@ -3,7 +3,6 @@ import { BookOpen, Image, Sparkles, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
-import ContestButton from '../../contestation/ContestButton';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 const VisualStoryteller = () => {
@@ -176,22 +175,6 @@ const VisualStoryteller = () => {
                                             </p>
                                         </div>
                                     )}
-                                    <div className="mt-3 pt-3 border-t border-gray-100 flex justify-center">
-                                        <ContestButton
-                                            toolId="VisualStoryteller"
-                                            outputSummary={(() => {
-                                                const literal = literalCaption
-                                                    ? `Literal: ${literalCaption.length > 240 ? literalCaption.slice(0, 240) + '…' : literalCaption}`
-                                                    : '';
-                                                const story = `Story: ${caption.length > 240 ? caption.slice(0, 240) + '…' : caption}`;
-                                                return [
-                                                    `Image: ${selectedImageName || '(unnamed)'}`,
-                                                    literal,
-                                                    story,
-                                                ].filter(Boolean).join('\n');
-                                            })()}
-                                        />
-                                    </div>
                                 </div>
                             )}
 
