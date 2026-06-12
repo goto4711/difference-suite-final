@@ -356,6 +356,33 @@ export class TransformersClient {
   public resetRestartCount() {
     this.restartCount = 0;
   }
+
+  /**
+   * Ask the worker to dispose a loaded model and clear its on-disk cache.
+   */
+  public async clearModelCache(modelId: string): Promise<{ filesDeleted: number }> {
+    const worker = this.getWorker();
+    return new Promise((resolve, reject) => {
+      const id = crypto.randomUUID();
+      const timeout = window.setTimeout(() => {
+        const req = this.pendingRequests.get(id);
+        if (req) {
+          this.pendingRequests.delete(id);
+          req.reject(new Error('Clear cache request timed out'));
+        }
+      }, 30_000);
+
+      this.pendingRequests.set(id, {
+        kind: 'inference',
+        resolve: (res) => resolve(res.output as { filesDeleted: number }),
+        reject,
+        timeout,
+      });
+
+      const msg: WorkerRequestMessage = { type: 'clear-cache', id, modelId };
+      worker.postMessage(msg);
+    });
+  }
 }
 
 export const transformersClient = TransformersClient.getInstance();

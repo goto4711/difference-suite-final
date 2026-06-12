@@ -19,6 +19,8 @@ interface SidebarProps {
     logoSrc: string;
     logoHref?: string;
     accessLink?: SidebarAccessLink;
+    /** Optional extra entries rendered under the "Main Menu" section, below Data Dashboard. */
+    mainMenuExtras?: SidebarTool[];
 }
 
 export const Sidebar = ({
@@ -26,6 +28,7 @@ export const Sidebar = ({
     logoSrc,
     logoHref = 'https://deep-culture.org/',
     accessLink,
+    mainMenuExtras,
 }: SidebarProps) => {
     const location = useLocation();
 
@@ -55,6 +58,24 @@ export const Sidebar = ({
                     <LayoutDashboard className="w-5 h-5" />
                     Data Dashboard
                 </Link>
+
+                {mainMenuExtras?.map((entry) => {
+                    const isActive = location.pathname === entry.path;
+                    return (
+                        <Link
+                            key={entry.path}
+                            to={entry.path}
+                            className={`flex items-center gap-4 px-8 py-3 text-sm font-medium transition-all
+                                ${isActive
+                                    ? 'text-main bg-main/10 border-r-4 border-main font-bold'
+                                    : 'text-main/60 hover:bg-main/5 hover:text-main border-r-4 border-transparent'
+                                }`}
+                        >
+                            <entry.icon className="w-5 h-5" />
+                            {entry.label}
+                        </Link>
+                    );
+                })}
 
                 <div className="nav-group-label mt-4 pl-8 bg-white">Tools</div>
 

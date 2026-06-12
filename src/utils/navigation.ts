@@ -12,9 +12,11 @@ import {
     Sparkles,
     BrainCircuit,
     Timer,
+    Cog,
     type LucideIcon
 } from 'lucide-react';
 
+const MachineRoom = lazy(() => import('../components/machineRoom/MachineRoom'));
 const AmbiguityAmplifier = lazy(() => import('../components/tools/AmbiguityAmplifier/AmbiguityAmplifier'));
 const ContextWeaver = lazy(() => import('../components/tools/ContextWeaver/ContextWeaver'));
 const DeepVectorMirror = lazy(() => import('../components/tools/DeepVectorMirror/DeepVectorMirror'));
@@ -38,6 +40,21 @@ export interface ToolDefinition {
     description: string;
     component: LazyExoticComponent<ComponentType>;
 }
+
+/**
+ * Entries rendered in the sidebar's "Main Menu" section, alongside Data
+ * Dashboard. The Machine Room is the suite's engine room — it inspects
+ * the inference layer itself rather than being a keyword tool.
+ */
+export const MAIN_MENU_EXTRAS: ToolDefinition[] = [
+    {
+        path: '/machine-room',
+        label: 'Machine Room',
+        icon: Cog,
+        description: 'See which models are loaded, what was evicted, what failed, in plain language.',
+        component: MachineRoom,
+    },
+];
 
 export const TOOLS: ToolDefinition[] = [
     {

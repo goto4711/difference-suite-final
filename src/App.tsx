@@ -4,7 +4,7 @@ import MainLayout from '@difference-suite/shared/components/shared/MainLayout';
 import { Header as SharedHeader } from '@difference-suite/shared/components/shared/Header';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { AuthGuard } from '@difference-suite/shared/components/auth/AuthGuard';
-import { TOOLS } from './utils/navigation';
+import { TOOLS, MAIN_MENU_EXTRAS } from './utils/navigation';
 import Sidebar from './components/shared/Sidebar';
 import { ModelStatusWidget } from './components/shared/ModelStatusWidget';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
@@ -29,6 +29,16 @@ function App() {
           >
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              {MAIN_MENU_EXTRAS.map((entry) => {
+                const EntryComponent = entry.component;
+                return (
+                  <Route
+                    key={entry.path}
+                    path={entry.path}
+                    element={<EntryComponent />}
+                  />
+                );
+              })}
               {TOOLS.map((tool) => {
                 const ToolComponent = tool.component;
 
