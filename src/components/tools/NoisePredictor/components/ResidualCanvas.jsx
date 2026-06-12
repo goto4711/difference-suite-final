@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import * as tf from '@tensorflow/tfjs';
 
-export const ResidualCanvas = ({ tensor, width, height, label = "Residual" }) => {
+// Generic tensor→canvas renderer. NOTE: no default label — this component is
+// used for the reconstruction AND the residual; a hardcoded "Residual" default
+// used to caption the reconstructed image incorrectly.
+export const ResidualCanvas = ({ tensor, width, height, label = null }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -26,7 +29,7 @@ export const ResidualCanvas = ({ tensor, width, height, label = "Residual" }) =>
 
     return (
         <div className="flex flex-col items-center">
-            <h3 className="text-deep-muted text-sm mb-2 uppercase tracking-wider">{label}</h3>
+            {label && <h3 className="text-deep-muted text-sm mb-2 uppercase tracking-wider">{label}</h3>}
             <canvas
                 ref={canvasRef}
                 width={width}

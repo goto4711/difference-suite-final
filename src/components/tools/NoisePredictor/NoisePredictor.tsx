@@ -277,7 +277,7 @@ const NoisePredictor = () => {
                 {/* Residual (Noise) */}
                 <div className="flex flex-col bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                     <div className="px-4 py-3 border-b border-gray-100 bg-white flex items-center justify-between">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{mode === 'image' ? 'Residual Noise' : 'Spectral Distortion'}</h3>
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{mode === 'image' ? 'Residual Noise (amplified for visibility)' : 'Spectral Distortion'}</h3>
                         <EyeOff className="w-3 h-3 text-gray-400" />
                     </div>
                     <div className="flex-1 p-4 flex items-center justify-center bg-white/50 overflow-hidden">

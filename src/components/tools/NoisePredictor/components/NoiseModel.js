@@ -108,9 +108,12 @@ export class NoiseModel {
         return tf.tidy(() => {
             // Abs difference
             const diff = tf.sub(original, reconstructed).abs();
-            // Enhance contrast to make the "noise" visible
-            const enhanced = diff.mul(5).clipByValue(0, 1);
-            return enhanced;
+            // Contrast-stretch to the full 0–1 range so the residual is visible
+            // regardless of reconstruction quality (a fixed ×5 still rendered
+            // near-black when the autoencoder converged well). The panel label
+            // says "amplified" so this is honest.
+            const max = diff.max();
+            return diff.div(max.add(1e-6)).clipByValue(0, 1);
         });
     }
 }

@@ -17,23 +17,28 @@ const VectorHeatmap = ({ vector, width = 300, height = 300 }) => {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Calculate max magnitude for scaling to ensure visibility
-        const maxVal = Math.max(...vector.map(Math.abs), 0.0001);
+        // Robust scale: CLIP-style embeddings contain a few extreme outlier
+        // dimensions (one value can be ~10x all others). Normalising by the MAX
+        // made every other cell round to black. Scale by the 95th percentile of
+        // magnitudes instead, clamp the outliers, and compress with sqrt so the
+        // bulk of small activations stays visible.
+        const magnitudes = vector.map(Math.abs).sort((a, b) => a - b);
+        const scale = magnitudes[Math.floor(magnitudes.length * 0.95)] || 0.0001;
 
         for (let i = 0; i < numValues; i++) {
             const val = vector[i];
 
-            // Map to [-1, 1] range based on local max to reveal small activations
-            const normalized = val / maxVal;
+            const clamped = Math.max(-1, Math.min(1, val / scale));
+            const intensity = Math.sqrt(Math.abs(clamped)); // perceptual boost for small values
 
             let r = 0, g = 0, b = 0;
-            if (normalized > 0) {
-                r = Math.floor(normalized * 255);
+            if (clamped > 0) {
+                r = Math.floor(intensity * 255);
             } else {
-                b = Math.floor(Math.abs(normalized) * 255);
+                b = Math.floor(intensity * 255);
             }
             // Add some green for "activity"
-            g = Math.floor(Math.abs(normalized) * 50);
+            g = Math.floor(intensity * 50);
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, Cog } from 'lucide-react';
 import { useMachineRoomStore, selectEventsForTool } from '../../stores/machineRoomStore';
 import { narrateEvent } from '../../utils/machineNarrator';
@@ -65,13 +66,36 @@ export const MachineWorkDrawer = ({ toolId }: MachineWorkDrawerProps) => {
         [events, toolId],
     );
 
-    return (
-        <div className="mt-3 border-2 border-main bg-white">
+    // Rendered through a portal as a FIXED bottom status bar. Earlier attempts:
+    // (1) in-flow below the tool grid — sat below the fold on short windows
+    //     (min-h-[600px] floor); (2) position:sticky — only sticks while its
+    //     parent container intersects the viewport, so it parked mid-page once
+    //     the user scrolled past the tool grid. position:fixed via a body-level
+    //     portal escapes every container and transform; the journal expands
+    //     UPWARD from the bar so it never leaves the screen.
+    return createPortal(
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-main bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.10)]">
+            {open && (
+                <div className="border-b border-gray-200 bg-gray-50 max-h-72 overflow-y-auto p-2">
+                    {filtered.length === 0 ? (
+                        <p className="px-2 py-3 text-xs text-text-muted italic">
+                            No events from this tool yet this session. Run an analysis above
+                            and the machine's choices will appear here in plain language.
+                        </p>
+                    ) : (
+                        <ul className="space-y-2 max-w-5xl mx-auto">
+                            {filtered.map((e) => (
+                                <MachineDrawerEntry key={e.id} event={e} />
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs uppercase tracking-wider font-bold text-main hover:bg-main/5"
+                className="w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-xs uppercase tracking-wider font-bold text-main hover:bg-main/5"
             >
                 <span className="flex items-center gap-2">
                     <Cog className={`w-4 h-4 ${filtered.length > 0 ? '' : 'opacity-50'}`} />
@@ -80,25 +104,10 @@ export const MachineWorkDrawer = ({ toolId }: MachineWorkDrawerProps) => {
                         ({filtered.length} {filtered.length === 1 ? 'event' : 'events'} this session)
                     </span>
                 </span>
-                {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {open ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
             </button>
-            {open && (
-                <div className="border-t border-gray-200 bg-gray-50 max-h-72 overflow-y-auto p-2">
-                    {filtered.length === 0 ? (
-                        <p className="px-2 py-3 text-xs text-text-muted italic">
-                            No events from this tool yet this session. Run an analysis above
-                            and the machine's choices will appear here in plain language.
-                        </p>
-                    ) : (
-                        <ul className="space-y-2">
-                            {filtered.map((e) => (
-                                <MachineDrawerEntry key={e.id} event={e} />
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            )}
-        </div>
+        </div>,
+        document.body,
     );
 };
 
