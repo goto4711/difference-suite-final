@@ -96,9 +96,12 @@ registerHandler({
         averagedAttention[i] /= heads;
       }
     } else if (outputs.last_hidden_state?.data && outputs.last_hidden_state.dims && outputs.last_hidden_state.dims.length >= 3) {
-      // Cosine similarity between BERT token embeddings — real model output, no simulation needed.
-      // ONNX exports don't include attention nodes, but last_hidden_state is always present.
-      // Cosine similarity captures contextual token relationships from the model's representation.
+      // TODO(transformers.js v4 output_attentions): when the library exposes
+      // real attention tensors for BERT-family ONNX graphs, prefer that path
+      // and drop this embedding-similarity proxy. Until then we surface what
+      // we actually compute — cosine similarity between contextual token
+      // embeddings, not real attention — and the UI badges it as such.
+      isSimulated = true;
       const hiddenData = outputs.last_hidden_state.data as ArrayLike<number>;
       const dims = outputs.last_hidden_state.dims;
       const hiddenSize = dims[2];

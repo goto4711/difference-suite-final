@@ -68,8 +68,11 @@ const AttentionLens = ({ text, isProcessing }: { text: string; isProcessing: boo
                     <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Attention Lens</span>
                 </div>
                 {analysis.isSimulated && (
-                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 font-medium uppercase tracking-tight" title="Real attention weights not available from this model">
-                        Simulated
+                    <span
+                        className="text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 font-medium normal-case tracking-tight"
+                        title="The BERT ONNX graph does not export attention nodes, so we're displaying cosine similarity between contextual token embeddings instead. Transformers.js v4 will eventually expose real attention weights."
+                    >
+                        Embedding similarity — real attention weights pending Transformers.js v4 support
                     </span>
                 )}
             </div>
@@ -114,7 +117,7 @@ const AttentionLens = ({ text, isProcessing }: { text: string; isProcessing: boo
 
             <div className="px-4 py-2 bg-white/50 text-[9px] text-text-muted italic border-t border-gray-100">
                 {analysis.isSimulated
-                    ? "Model optimized for web: simulating attention patterns based on token structure."
+                    ? "Shown: cosine similarity between contextual token embeddings. Standard BERT ONNX exports do not include attention output nodes; this is a proxy until Transformers.js v4 exposes real attention weights."
                     : "Visualizes the real \"Transformer Attention\"—highlighting which words contribute most to the vector."}
             </div>
         </>
