@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, AlertTriangle } from 'lucide-react';
+import { displayCategory } from '../utils/categoryDisplay';
 
 const GenerationGrid = ({ results }) => {
     if (!results || results.length === 0) {
@@ -47,6 +48,18 @@ const GenerationGrid = ({ results }) => {
                                 </div>
                             )}
 
+                            {/* SIMULATED badge — only shown for cards produced by the
+                                SmolLM2 text-only fallback. Stays above the hover
+                                overlay so it cannot be mistaken for a real result. */}
+                            {item.simulated && (
+                                <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-md">
+                                    Simulated
+                                    <div className="text-[8px] font-mono font-normal tracking-tight normal-case opacity-90">
+                                        tiny LM, not real output
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Premium Overlay Tags */}
                             <div className="absolute inset-0 bg-main/95 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-400 p-4 text-xs text-white overflow-y-auto flex flex-col gap-3 translate-y-4 group-hover:translate-y-0">
                                 <div className="font-black text-[10px] uppercase tracking-widest text-white/50 border-b border-white/20 pb-2 flex justify-between">
@@ -59,14 +72,46 @@ const GenerationGrid = ({ results }) => {
                                 </blockquote>
 
                                 <div className="mt-auto space-y-2 pt-2 border-t border-white/10">
-                                    <div className="text-[9px] uppercase font-bold text-white/40 tracking-tighter">Attribute Analysis</div>
+                                    <div className="text-[9px] uppercase font-bold text-white/40 tracking-tighter">CLIP attribute reading</div>
                                     <div className="grid grid-cols-1 gap-y-1 text-[10px] font-mono">
-                                        {Object.entries(item.tags).map(([k, v]) => (
-                                            <div key={k} className="flex justify-between items-center bg-white/5 px-2 py-1 rounded">
-                                                <span className="opacity-50 text-[8px] uppercase">{k}</span>
-                                                <span className="text-white font-bold">{v}</span>
-                                            </div>
-                                        ))}
+                                        {Object.entries(item.tags).map(([k, v]) => {
+                                            const detail = item.tagDetails?.[k];
+                                            const ambiguous = v === 'ambiguous';
+                                            const probs = detail?.probabilities ?? {};
+                                            // top-2 by probability for the tooltip
+                                            const top2 = Object.entries(probs)
+                                                .sort((a, b) => b[1] - a[1])
+                                                .slice(0, 2)
+                                                .map(([label, p]) => `${label} ${Math.round(p * 100)}%`)
+                                                .join(' / ');
+                                            const tooltip = detail
+                                                ? `CLIP read this as ${top2}`
+                                                : 'No confidence data available';
+                                            // Confidence bar: 0–1 of cell width, scaled by margin
+                                            const barWidth = detail ? Math.min(100, Math.max(8, detail.margin * 100)) : 0;
+                                            return (
+                                                <div
+                                                    key={k}
+                                                    className="bg-white/5 px-2 py-1 rounded flex flex-col gap-0.5"
+                                                    title={tooltip}
+                                                >
+                                                    <div className="flex justify-between items-center gap-2">
+                                                        <span className="opacity-50 text-[8px] uppercase truncate">{displayCategory(k)}</span>
+                                                        <span className={`font-bold ${ambiguous ? 'text-white/70 italic' : 'text-white'}`}>
+                                                            {ambiguous ? `≈ ${v}` : v}
+                                                        </span>
+                                                    </div>
+                                                    {detail && (
+                                                        <div className="h-[2px] w-full bg-white/10 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full ${ambiguous ? 'bg-white/30' : 'bg-white/80'}`}
+                                                                style={{ width: `${barWidth}%` }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -90,12 +135,26 @@ const GenerationGrid = ({ results }) => {
                 <div className="space-y-1">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-main">Researcher Note: Interpreting Projections</h4>
                     {hasRealImages ? (
-                        <p className="text-[11px] text-text-muted leading-relaxed italic">
-                            Images are drawn from the <strong>Stable Bias</strong> dataset (Bianchi et al., 2023) — real
-                            outputs of Stable Diffusion v1.4/v2 and DALL-E 2 generated with neutral profession prompts.
-                            Demographic tags are assigned by <strong>CLIP zero-shot classification</strong>. These images
-                            may reflect or amplify societal stereotypes present in the model's training data.
-                        </p>
+                        <>
+                            <p className="text-[11px] text-text-muted leading-relaxed italic">
+                                Images are drawn from the <strong>Stable Bias</strong> dataset (Bianchi et al., 2023) — real
+                                outputs of Stable Diffusion v1.4/v2 and DALL-E 2 generated with neutral profession prompts.
+                                Demographic tags are assigned by <strong>CLIP zero-shot classification</strong>. These images
+                                may reflect or amplify societal stereotypes present in the model's training data.
+                            </p>
+                            <p className="text-[10px] text-text-muted/80 leading-relaxed mt-1">
+                                Images:{' '}
+                                <a
+                                    href="https://huggingface.co/datasets/stable-bias/professions"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="underline hover:text-main"
+                                >
+                                    stable-bias/professions
+                                </a>{' '}
+                                (CC BY-SA 4.0) — outputs of Stable Diffusion 1.4, Stable Diffusion 2, and DALL-E 2.
+                            </p>
+                        </>
                     ) : (
                         <p className="text-[11px] text-text-muted leading-relaxed italic">
                             This profession was not found in the Stable Bias dataset. The "projections" above are

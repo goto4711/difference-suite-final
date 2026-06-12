@@ -1,4 +1,25 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import {
+    AMBIGUITY_MARGIN,
+    AMBIGUOUS_TAG,
+    clipProbabilities,
+    confidenceColor,
+    NEUTRAL_GREY,
+    resolveTag,
+    softmax,
+    type TagDetail,
+} from './clipUncertainty';
+
+export {
+    AMBIGUITY_MARGIN,
+    AMBIGUOUS_TAG,
+    confidenceColor,
+    resolveTag,
+    softmax,
+    type TagDetail,
+};
+
+const SIMULATED_COLOR = NEUTRAL_GREY;
 
 export interface GeneratedResult {
     id: number;
@@ -6,9 +27,28 @@ export interface GeneratedResult {
     syntheticPrompt: string;
     adjective: string;
     tags: Record<string, string>;
+    tagDetails: Record<string, TagDetail>;
     image: string | null;
     color: string;
+    // True for cards produced by the SmolLM2 text-only fallback (network-failure
+    // path). Drives the prominent SIMULATED badge in GenerationGrid.
+    simulated?: boolean;
 }
+
+/**
+ * Outcome of a generate() call. The unmatched case never produces cards: the
+ * UI renders an honest empty state with suggestion chips instead of passing
+ * unreliable LM output off as a real image-generation result.
+ *
+ * NOTE TO PI: open question — for the network-failure path (matched profession
+ * but HF fetch failed), should we prefer a static offline message over the
+ * SmolLM2 simulation entirely? The simulation is still wired up and badged
+ * 'SIMULATED', but it is unreliable noise. Easy switch in generateImages().
+ */
+export type GenerateOutcome =
+    | { kind: 'matched'; results: GeneratedResult[] }
+    | { kind: 'unmatched'; prompt: string; suggestions: string[] }
+    | { kind: 'simulated'; results: GeneratedResult[]; reason: string };
 
 interface StableBiasRow {
     row?: {
@@ -102,6 +142,27 @@ const DEMOGRAPHIC_CATEGORIES: Record<string, { labels: string[], template: (l: s
     },
 };
 
+// Curated pool for empty-state suggestion chips. Mixes high-status, care, and
+// service work so the chips don't reinforce a "real professions are doctor /
+// CEO / lawyer" framing.
+const SUGGESTION_POOL = [
+    'doctor', 'CEO', 'lawyer', 'pilot', 'software_developer', 'scientist',
+    'teacher', 'nurse', 'firefighter', 'social_worker', 'therapist',
+    'janitor', 'cashier', 'security_guard', 'waiter', 'fast_food_worker',
+];
+
+/**
+ * Pick `n` shuffled suggestions from the curated pool. Exported for tests.
+ */
+export const sampleSuggestions = (n = 7): string[] => {
+    const pool = [...SUGGESTION_POOL];
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, n);
+};
+
 /**
  * Normalize a user prompt to a profession slug in the dataset.
  * Returns the slug as stored (e.g. 'CEO', 'doctor', 'software_developer'), or null if no match.
@@ -117,11 +178,23 @@ function matchProfession(prompt: string): string | null {
     ) ?? null;
 }
 
+interface ClassificationResult {
+    tags: Record<string, string>;
+    tagDetails: Record<string, TagDetail>;
+}
+
+const FAILED_CLASSIFICATION: ClassificationResult = {
+    tags: { Gender: 'unknown', Race: 'unknown', Age: 'unknown', Setting: 'unknown' },
+    tagDetails: {},
+};
+
 /**
  * Run one batched CLIP call (image → text) across all demographic categories.
- * Returns the best-matching label per category.
+ * Returns per-category labels plus uncertainty details (top-2 + softmax probs).
+ * When the margin between top and runner-up is below AMBIGUITY_MARGIN the
+ * category's label is reported as 'ambiguous'.
  */
-async function classifyDemographicsWithCLIP(imageUrl: string): Promise<Record<string, string>> {
+async function classifyDemographicsWithCLIP(imageUrl: string): Promise<ClassificationResult> {
     const allPrompts: string[] = [];
     const categoryRanges: Record<string, [number, number]> = {};
     let offset = 0;
@@ -151,27 +224,24 @@ async function classifyDemographicsWithCLIP(imageUrl: string): Promise<Record<st
         const scoreMap = new Map(scores.map(s => [s.url, s.score]));
 
         const tags: Record<string, string> = {};
+        const tagDetails: Record<string, TagDetail> = {};
+
         for (const [cat, { labels }] of Object.entries(DEMOGRAPHIC_CATEGORIES)) {
             const [start, end] = categoryRanges[cat];
             const catPrompts = allPrompts.slice(start, end);
-            let bestLabel = labels[0];
-            let bestScore = -Infinity;
-            const debugScores: Record<string, number> = {};
-            catPrompts.forEach((prompt, i) => {
-                const score = scoreMap.get(prompt) ?? -Infinity;
-                debugScores[labels[i]] = score;
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestLabel = labels[i];
-                }
-            });
+            const rawScores = catPrompts.map(p => scoreMap.get(p) ?? -Infinity);
+            // clipProbabilities applies CLIP's logit scale before softmax —
+            // raw cosine similarities are too close together for a meaningful margin.
+            const probs = clipProbabilities(rawScores);
+            const detail = resolveTag(labels, probs);
 
-            tags[cat] = bestLabel;
+            tags[cat] = detail.label;
+            tagDetails[cat] = detail;
         }
-        return tags;
+        return { tags, tagDetails };
     } catch (e) {
         console.error('[GeneratorEngine] CLIP classification failed:', e);
-        return { Gender: 'unknown', Race: 'unknown', Age: 'unknown', Setting: 'unknown' };
+        return FAILED_CLASSIFICATION;
     }
 }
 
@@ -219,8 +289,10 @@ Format as a numbered list.`;
                 syntheticPrompt: description,
                 adjective: '',
                 tags: { Gender: gender, Race: race, Age: age, Setting: setting },
+                tagDetails: {},
                 image: null,
-                color: gender.includes('female') ? '#ffcccb' : '#add8e6',
+                color: SIMULATED_COLOR,
+                simulated: true,
             });
         }
 
@@ -231,8 +303,10 @@ Format as a numbered list.`;
                 syntheticPrompt: generatedText.slice(0, 150) + '...',
                 adjective: '',
                 tags: { Status: 'Unstructured Output' },
+                tagDetails: {},
                 image: null,
-                color: '#e0e0e0',
+                color: SIMULATED_COLOR,
+                simulated: true,
             });
         }
         return results;
@@ -250,18 +324,20 @@ export interface GenerateOptions {
 /**
  * Main entry point.
  * If the prompt matches a profession in the Stable Bias dataset, fetches real
- * Stable Diffusion-generated images and classifies demographics via CLIP zero-shot.
- * Falls back to SmolLM2 text simulation for unrecognised prompts.
+ * Stable Diffusion-generated images and classifies demographics via CLIP
+ * zero-shot. Unmatched prompts now return an honest empty state — the SmolLM2
+ * simulation is only used as a network-failure fallback, with every card
+ * badged SIMULATED so it cannot be mistaken for real generative output.
  *
  * @param fixedAdjective - When set, all images use the same adjective (controls for adjective influence).
  *                         When null/undefined, each image gets a random different adjective.
  */
-export const generateImages = async (prompt: string, opts: GenerateOptions = {}): Promise<GeneratedResult[]> => {
+export const generateImages = async (prompt: string, opts: GenerateOptions = {}): Promise<GenerateOutcome> => {
     const { count = 5, fixedAdjective = null } = opts;
     const profession = matchProfession(prompt);
 
     if (!profession) {
-        return generateImagesLegacy(prompt, count);
+        return { kind: 'unmatched', prompt, suggestions: sampleSuggestions(7) };
     }
 
     try {
@@ -330,14 +406,15 @@ export const generateImages = async (prompt: string, opts: GenerateOptions = {})
         }
 
         if (selectedRows.length === 0) {
-            return generateImagesLegacy(prompt, count);
+            const results = await generateImagesLegacy(prompt, count);
+            return { kind: 'simulated', results, reason: 'Stable Bias dataset returned no rows for this profession.' };
         }
         // Process images sequentially so CLIP loads once and stays resident
         const results: GeneratedResult[] = [];
         for (const [i, row] of selectedRows.entries()) {
             const imageUrl: string = row.row.image.src;
             const adjective: string = row.row.adjective || '';
-            const tags = await classifyDemographicsWithCLIP(imageUrl);
+            const { tags, tagDetails } = await classifyDemographicsWithCLIP(imageUrl);
 
             results.push({
                 id: i,
@@ -345,13 +422,15 @@ export const generateImages = async (prompt: string, opts: GenerateOptions = {})
                 syntheticPrompt: `Photo portrait of ${adjective ? `an ${adjective}` : 'a'} ${profession.replace(/_/g, ' ')}`,
                 adjective,
                 tags,
+                tagDetails,
                 image: imageUrl,
-                color: tags.Gender === 'female' ? '#ffcccb' : tags.Gender === 'non-binary' ? '#e8d5f5' : '#add8e6',
+                color: confidenceColor(tagDetails),
             });
         }
-        return results;
+        return { kind: 'matched', results };
     } catch (error) {
         console.error('[GeneratorEngine] Stable Bias fetch failed, falling back to simulation:', error);
-        return generateImagesLegacy(prompt, count);
+        const results = await generateImagesLegacy(prompt, count);
+        return { kind: 'simulated', results, reason: 'Network or dataset error — falling back to SmolLM2 simulation.' };
     }
 };

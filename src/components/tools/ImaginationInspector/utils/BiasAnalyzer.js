@@ -58,6 +58,11 @@ export const analyzeBias = (generatedResults) => {
 
 // Helper to define the "Universe of Possibility" for demographic tags.
 // Keys must match the capitalized tag keys produced by GeneratorEngine.
+// 'ambiguous' is included for every category: when CLIP's top-2 margin is below
+// AMBIGUITY_MARGIN the classifier emits 'ambiguous' as a first-class outcome.
+// That means it appears in the Void Report (with its own count when present, or
+// as VOID when every classification in this category was confident).
+const AMBIGUOUS_TAG = 'ambiguous';
 const getAllKnownTags = (category) => {
     const UNIVERSE = {
         Gender: ['male', 'female', 'non-binary'],
@@ -65,5 +70,7 @@ const getAllKnownTags = (category) => {
         Age: ['young', 'middle-aged', 'elderly'],
         Setting: ['office', 'outdoor', 'hospital', 'home', 'studio'],
     };
-    return UNIVERSE[category] || [];
+    const base = UNIVERSE[category];
+    if (!base) return [];
+    return [...base, AMBIGUOUS_TAG];
 };

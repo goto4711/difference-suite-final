@@ -1,16 +1,13 @@
 import { useState } from 'react';
-import { Sparkles, User, Split, Maximize, Database } from 'lucide-react';
+import { Sparkles, User, Split, Maximize } from 'lucide-react';
 import PromptInput from './components/PromptInput';
 import GenerationGrid from './components/GenerationGrid';
 import AbsenceReport from './components/AbsenceReport';
+import UnmatchedEmptyState from './components/UnmatchedEmptyState';
 import { generateImages, type GenerateOptions, type GeneratedResult } from './utils/GeneratorEngine';
 import { analyzeBias } from './utils/BiasAnalyzer';
 import ToolLayout from '../../shared/ToolLayout';
-import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
-import { alignDatasetToPrompt } from './utils/DatasetAligner';
-import type { AlignmentResult } from './utils/DatasetAligner';
 import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
-import type { DataItem } from '@difference-suite/shared/types';
 
 interface BiasCategoryReport {
     present: Array<{ tag: string; count: number; percentage: number }>;
@@ -22,79 +19,32 @@ interface BiasReport {
     categories: Record<string, BiasCategoryReport>;
 }
 
-const INTERNAL_ARCHETYPES: DataItem[] = [
-    { id: 'arc-ceo', name: 'CEO', content: `${window.location.origin}/images/ceo_archetype.png`, type: 'image' },
-    { id: 'arc-nurse', name: 'Nurse', content: `${window.location.origin}/images/nurse_archetype.png`, type: 'image' },
-    { id: 'arc-criminal', name: 'Criminal', content: `${window.location.origin}/images/criminal_archetype.png`, type: 'image' },
-    { id: 'arc-professor', name: 'Professor', content: `${window.location.origin}/images/professor_archetype.png`, type: 'image' },
-    { id: 'arc-terrorist', name: 'Terrorist', content: `${window.location.origin}/images/terrorist_archetype.png`, type: 'image' },
-    { id: 'arc-worker', name: 'Worker', content: `${window.location.origin}/images/worker_archetype.png`, type: 'image' },
-];
-
-const RealityMatches = ({ alignments, label, datasetName }: { alignments: AlignmentResult[], label?: string, datasetName: string }) => {
-    if (alignments.length === 0) return null;
-
-    return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
-            <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100 flex items-center justify-between">
-                <span className="text-[10px] font-black text-main uppercase tracking-widest flex items-center gap-1.5">
-                    <Database size={10} />
-                    Dataset Alignment {label && `(${label})`}
-                </span>
-                <span className="text-[9px] text-text-muted italic">CLIP semantic match</span>
-            </div>
-            <div className="p-3">
-                <div className="grid grid-cols-3 gap-2">
-                    {alignments.map((match, i) => (
-                        <div key={i} className="group relative">
-                            <div className="aspect-square rounded bg-gray-100 overflow-hidden border border-gray-100 transition-transform group-hover:scale-105">
-                                <img src={match.url} alt={match.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[8px] py-0.5 text-center font-bold">
-                                    {(match.score * 100).toFixed(0)}%
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <p className="text-[9px] text-text-muted mt-2 leading-tight">
-                    Top semantically similar items using multimodal CLIP alignment:{' '}
-                    {datasetName.split(', ').map((name, i, arr) => (
-                        <span key={name}>
-                            <strong>{name}</strong>{i < arr.length - 1 ? ', ' : ''}
-                        </span>
-                    ))}
-                </p>
-            </div>
-        </div>
-    );
-};
+// NOTE: the "Dataset Alignment" panel (RealityMatches + DatasetAligner) was
+// removed 2026-06-12. It ran an extra CLIP pass over the whole image corpus on
+// every generation, its raw-cosine percentages were uninformative, and the
+// blob-URL→Blob transport change broke its identity matching (every thumbnail
+// rendered as "Unknown"). Corpus-vs-prompt similarity is better served by
+// Deep Vector Mirror and Context Weaver.
 
 const ImaginationInspector = () => {
-    const { dataset, collections } = useSuiteStore();
-
-    // Derive a human-readable name for the dataset alignment section.
-    const datasetName = (() => {
-        if (dataset.length === 0) return 'Built-in Archetypes';
-        const collectionIds = [...new Set(dataset.map(i => i.collectionId).filter(Boolean))];
-        const namedCollections = collectionIds
-            .map(id => collections.find(c => c.id === id)?.name)
-            .filter(Boolean) as string[];
-        if (namedCollections.length > 0) return namedCollections.join(', ');
-        return `Your Dataset (${dataset.length} items)`;
-    })();
     const [mode, setMode] = useState<'single' | 'compare'>('single');
+
+    // When generateImages returns kind:'unmatched', the side displays an
+    // empty state with suggestion chips instead of the grid. null = no
+    // unmatched state for this side.
+    interface UnmatchedState { prompt: string; suggestions: string[] }
 
     // Side A (Default)
     const [promptA, setPromptA] = useState('');
     const [resultsA, setResultsA] = useState<GeneratedResult[]>([]);
     const [reportA, setReportA] = useState<BiasReport | null>(null);
-    const [alignmentsA, setAlignmentsA] = useState<AlignmentResult[]>([]);
+    const [unmatchedA, setUnmatchedA] = useState<UnmatchedState | null>(null);
 
     // Side B (Comparison)
     const [promptB, setPromptB] = useState('');
     const [resultsB, setResultsB] = useState<GeneratedResult[]>([]);
     const [reportB, setReportB] = useState<BiasReport | null>(null);
-    const [alignmentsB, setAlignmentsB] = useState<AlignmentResult[]>([]);
+    const [unmatchedB, setUnmatchedB] = useState<UnmatchedState | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [adjectiveMode, setAdjectiveMode] = useState<'varied' | 'fixed'>('varied');
@@ -112,21 +62,29 @@ const ImaginationInspector = () => {
             const opts: GenerateOptions = adjectiveMode === 'fixed' ? { fixedAdjective } : {};
             // Run A
             if (promptA.trim()) {
-                const genA = await generateImages(promptA, opts);
-                setResultsA(genA);
-                setReportA(analyzeBias(genA) as BiasReport | null);
-                const searchSpaceA: DataItem[] = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
-                const aliA = await alignDatasetToPrompt(promptA, searchSpaceA);
-                setAlignmentsA(aliA.slice(0, 3));
+                const outA = await generateImages(promptA, opts);
+                if (outA.kind === 'unmatched') {
+                    setUnmatchedA({ prompt: outA.prompt, suggestions: outA.suggestions });
+                    setResultsA([]);
+                    setReportA(null);
+                } else {
+                    setUnmatchedA(null);
+                    setResultsA(outA.results);
+                    setReportA(analyzeBias(outA.results) as BiasReport | null);
+                }
             }
             // Run B if comparing
             if (mode === 'compare' && promptB.trim()) {
-                const genB = await generateImages(promptB, opts);
-                setResultsB(genB);
-                setReportB(analyzeBias(genB) as BiasReport | null);
-                const searchSpaceB: DataItem[] = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
-                const aliB = await alignDatasetToPrompt(promptB, searchSpaceB);
-                setAlignmentsB(aliB.slice(0, 3));
+                const outB = await generateImages(promptB, opts);
+                if (outB.kind === 'unmatched') {
+                    setUnmatchedB({ prompt: outB.prompt, suggestions: outB.suggestions });
+                    setResultsB([]);
+                    setReportB(null);
+                } else {
+                    setUnmatchedB(null);
+                    setResultsB(outB.results);
+                    setReportB(analyzeBias(outB.results) as BiasReport | null);
+                }
             }
         } catch (error) {
             console.error("Generation failed:", error);
@@ -143,7 +101,14 @@ const ImaginationInspector = () => {
         }
     };
 
-    const renderPanel = (label: string, results: GeneratedResult[], loading: boolean, prompt: string) => (
+    const renderPanel = (
+        label: string,
+        results: GeneratedResult[],
+        loading: boolean,
+        prompt: string,
+        unmatched: UnmatchedState | null,
+        onPickSuggestion: (slug: string) => void,
+    ) => (
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--color-main)] opacity-10"></div>
             {label && <div className="p-2 text-center text-xs font-bold uppercase tracking-widest text-[var(--color-main)] opacity-50 border-b border-gray-100">{label}</div>}
@@ -154,6 +119,12 @@ const ImaginationInspector = () => {
                         <Sparkles className="animate-spin text-[var(--color-main)] w-8 h-8" />
                         <span className="text-xs font-mono animate-pulse">Dreaming of "{prompt}"...</span>
                     </div>
+                ) : unmatched ? (
+                    <UnmatchedEmptyState
+                        prompt={unmatched.prompt}
+                        suggestions={unmatched.suggestions}
+                        onPick={onPickSuggestion}
+                    />
                 ) : results.length > 0 ? (
                     <GenerationGrid results={results} />
                 ) : (
@@ -170,6 +141,16 @@ const ImaginationInspector = () => {
 
     const mainContent = (
         <div className="flex flex-col h-full gap-4">
+            {/* Disclosure: name the instrument */}
+            <div className="px-4 py-3 bg-[var(--color-main)]/5 border-l-2 border-[var(--color-main)] rounded-r-lg text-[11px] leading-relaxed text-text-muted">
+                <p>
+                    The demographic readings below are made by another AI — <strong>CLIP</strong>, a model trained on web images
+                    with documented biases of its own. They are machine perceptions, not facts about the people depicted (who do
+                    not exist). Where CLIP itself hesitates, we say so: <em>"ambiguous"</em>. Notably, the Stable Bias researchers
+                    who created this image archive declined to assign identity labels to faces at all.
+                </p>
+            </div>
+
             {/* Header Area */}
             <div className="px-6 py-4 bg-white rounded-lg border border-gray-200 shadow-sm flex justify-between items-center">
                 <div>
@@ -203,12 +184,19 @@ const ImaginationInspector = () => {
 
             {/* Content Area */}
             <div className={`flex-1 flex gap-4 min-h-0 ${mode === 'compare' ? '' : 'justify-center'}`}>
-                {renderPanel(mode === 'compare' ? 'Side A' : '', resultsA, loading, promptA)}
+                {renderPanel(
+                    mode === 'compare' ? 'Side A' : '',
+                    resultsA,
+                    loading,
+                    promptA,
+                    unmatchedA,
+                    setPromptA,
+                )}
 
                 {mode === 'compare' && (
                     <>
                         <div className="w-[1px] bg-gray-200 self-stretch my-4"></div>
-                        {renderPanel('Side B', resultsB, loading, promptB)}
+                        {renderPanel('Side B', resultsB, loading, promptB, unmatchedB, setPromptB)}
                     </>
                 )}
             </div>
@@ -303,18 +291,14 @@ const ImaginationInspector = () => {
             )}
 
 
-            {/* Absence Report(s) & Reality Matches */}
+            {/* Absence Report(s) */}
             <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto custom-scrollbar pt-2 border-t border-gray-100">
-                {alignmentsA.length > 0 && <RealityMatches alignments={alignmentsA} label={mode === 'compare' ? 'Side A' : ''} datasetName={datasetName} />}
-
                 {reportA && (
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden shrink-0">
                         {mode === 'compare' && <div className="bg-gray-50 px-3 py-1 text-[10px] border-b border-gray-100 font-bold opacity-50 uppercase tracking-widest">Report A</div>}
                         <AbsenceReport report={reportA} />
                     </div>
                 )}
-
-                {alignmentsB.length > 0 && <RealityMatches alignments={alignmentsB} label="Side B" datasetName={datasetName} />}
 
                 {mode === 'compare' && reportB && (
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden shrink-0">

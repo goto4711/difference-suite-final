@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { displayCategory } from '../utils/categoryDisplay';
 
 const AbsenceReport = ({ report }) => {
     if (!report) return null;
@@ -32,7 +33,7 @@ const AbsenceReport = ({ report }) => {
                     return (
                         <div key={category} className="flex flex-col gap-2">
                             <h3 className="font-bold uppercase text-sm bg-[var(--color-main)] text-white px-2 py-1 inline-block self-start">
-                                {category}
+                                {displayCategory(category)}
                             </h3>
 
                             <div className="space-y-2 mt-2">
