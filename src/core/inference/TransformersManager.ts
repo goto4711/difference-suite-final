@@ -7,6 +7,8 @@ import type {
   ModelConfig,
   WorkerStatus,
   Device,
+  MachineEvent,
+  MachineEventKind,
 } from './types';
 import { getHandler } from './taskHandlers';
 import { getModelConfig, MODEL_REGISTRY } from './modelRegistry';
@@ -18,6 +20,8 @@ env.allowLocalModels = false;
 env.useWasmCache = true;
 env.logLevel = LogLevel.WARNING;
 
+let threadCapInfo: { cores: number; threads: number } | null = null;
+
 // Cap WASM threads below core count. ORT's pthread pool spin-waits aggressively;
 // using all cores can starve the main thread (tab freeze) and has been observed
 // to deadlock on some quantized models. Leave headroom for the UI thread.
@@ -25,13 +29,55 @@ try {
   const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
   const wasmBackend = (env.backends as { onnx?: { wasm?: { numThreads?: number } } })?.onnx?.wasm;
   if (wasmBackend) {
-    wasmBackend.numThreads = Math.max(1, Math.min(4, cores - 2));
+    const threads = Math.max(1, Math.min(4, cores - 2));
+    wasmBackend.numThreads = threads;
+    threadCapInfo = { cores, threads };
   }
 } catch {
   // Non-fatal: fall back to ORT defaults.
 }
 
 const MAX_LOADED_MODELS = 3;
+
+type MachineEventEmitter = (event: MachineEvent) => void;
+
+/**
+ * Best-effort description of an inference output for the decision journal.
+ * Never logs content — only shapes (e.g. "384 numbers", "array of 5").
+ */
+const describeOutputShape = (output: unknown): string | undefined => {
+  try {
+    if (output == null) return undefined;
+    if (typeof output === 'object') {
+      const maybeTensor = output as { dims?: unknown; data?: ArrayLike<unknown> };
+      if (Array.isArray(maybeTensor.dims) && maybeTensor.dims.length > 0) {
+        return `tensor ${maybeTensor.dims.join('×')}`;
+      }
+      if (Array.isArray(output)) {
+        return `array of ${output.length}`;
+      }
+      if (typeof maybeTensor.data?.length === 'number') {
+        return `${maybeTensor.data.length} numbers`;
+      }
+    }
+    if (typeof output === 'string') return `text (${output.length} chars)`;
+    if (typeof output === 'number') return 'one number';
+  } catch {
+    // fall through
+  }
+  return undefined;
+};
+
+const newEventId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fallthrough
+  }
+  return `me_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
 
 /**
  * Singleton manager for ML model lifecycle and inference.
@@ -48,6 +94,11 @@ export class TransformersManager {
   private loadingPromises = new Map<string, Promise<CallablePipeline>>();
   /** Map of logicalId -> device actually used (wasm vs webgpu) */
   private effectiveDevices = new Map<string, Device>();
+  /** Map of logicalId -> when load was first requested */
+  private loadStartAt = new Map<string, number>();
+
+  private machineEventEmitter: MachineEventEmitter | null = null;
+  private threadCapAnnounced = false;
 
   private constructor() {}
 
@@ -59,6 +110,55 @@ export class TransformersManager {
   }
 
   /**
+   * Register a fire-and-forget machine-event sink. The worker wires this to
+   * `self.postMessage` so events reach the main-thread store.
+   */
+  public setMachineEventEmitter(emitter: MachineEventEmitter | null): void {
+    this.machineEventEmitter = emitter;
+  }
+
+  /**
+   * Fire-and-forget event emission. Summary text is filled in by the narrator
+   * on the consumer side; here we only carry the kind and the technical detail.
+   * Wrapped in try/catch — a logging bug must not break a tool.
+   */
+  private emit(
+    kind: MachineEventKind,
+    opts: { toolId?: string; modelId?: string; detail?: Record<string, string | number | boolean> } = {},
+  ): void {
+    try {
+      if (!this.machineEventEmitter) return;
+      // First lifecycle event of the session also carries the thread-cap note.
+      if (!this.threadCapAnnounced && threadCapInfo) {
+        this.threadCapAnnounced = true;
+        const { cores, threads } = threadCapInfo;
+        try {
+          this.machineEventEmitter({
+            id: newEventId(),
+            ts: Date.now(),
+            kind: 'threads-capped',
+            summary: '',
+            detail: { cores, threads },
+          });
+        } catch {
+          // ignore
+        }
+      }
+      this.machineEventEmitter({
+        id: newEventId(),
+        ts: Date.now(),
+        kind,
+        summary: '',
+        toolId: opts.toolId,
+        modelId: opts.modelId,
+        detail: opts.detail,
+      });
+    } catch {
+      // never throw from emission
+    }
+  }
+
+  /**
    * Main entry point for inference.
    * Dispatches to the appropriate task-handler.
    */
@@ -67,12 +167,26 @@ export class TransformersManager {
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult> {
     const config = getModelConfig(request.model);
-    
+    const toolId = typeof request.tool === 'string' ? request.tool : undefined;
+
+    this.emit('load-requested', {
+      toolId,
+      modelId: config.id,
+      detail: { task: String(config.task), modelName: config.name, hfPath: config.hfPath },
+    });
+
     // 1. Ensure model is loaded (with LRU eviction)
-    const pipe = await this.getOrLoadPipeline(request.id, config, onProgress);
-    
+    const pipe = await this.getOrLoadPipeline(request.id, config, onProgress, toolId);
+
     // 2. Update LRU timestamp
     this.lastUsedAt.set(config.id, Date.now());
+
+    const inferenceStartedAt = Date.now();
+    this.emit('inference-start', {
+      toolId,
+      modelId: config.id,
+      detail: { task: String(request.task) },
+    });
 
     // 3. Dispatch to handler with watchdog: a wedged ORT session freezes the worker event
     // loop indefinitely. Reject after 120 s so the client surfaces an error instead of
@@ -88,10 +202,24 @@ export class TransformersManager {
     );
 
     try {
-      return await Promise.race([handlerPromise, timeoutPromise]);
+      const result = await Promise.race([handlerPromise, timeoutPromise]);
+      const durationMs = Date.now() - inferenceStartedAt;
+      const outputShape = describeOutputShape(result?.output);
+      this.emit('inference-done', {
+        toolId,
+        modelId: config.id,
+        detail: { durationMs, ...(outputShape ? { outputShape } : {}) },
+      });
+      return result;
     } catch (err) {
+      const durationMs = Date.now() - inferenceStartedAt;
       if (err instanceof Error && err.message.includes('wedged')) {
         console.error(`[TransformersManager] Watchdog fired for ${config.id}. Disposing session.`);
+        this.emit('watchdog-timeout', {
+          toolId,
+          modelId: config.id,
+          detail: { durationMs, timeoutSeconds: HANDLER_TIMEOUT_MS / 1000 },
+        });
         this.disposeModel(config.id);
       }
       throw err;
@@ -108,6 +236,7 @@ export class TransformersManager {
     requestId: string,
     config: ModelConfig,
     onProgress?: (p: InferenceProgress) => void,
+    toolId?: string,
   ): Promise<CallablePipeline> {
     // Already loaded — return immediately.
     if (this.pipelines.has(config.id)) {
@@ -123,17 +252,28 @@ export class TransformersManager {
       return existingPromise;
     }
 
-    this.evictIfNecessary(config);
-    const loadPromise = this.loadPipeline(requestId, config, onProgress);
+    this.evictIfNecessary(config, toolId);
+    this.loadStartAt.set(config.id, Date.now());
+    const loadPromise = this.loadPipeline(requestId, config, onProgress, toolId);
     this.loadingPromises.set(config.id, loadPromise);
 
     try {
       const pipe = await loadPromise;
       this.pipelines.set(config.id, pipe);
       this.lastUsedAt.set(config.id, Date.now());
+      const durationMs = Date.now() - (this.loadStartAt.get(config.id) ?? Date.now());
+      this.emit('loaded', {
+        toolId,
+        modelId: config.id,
+        detail: {
+          durationMs,
+          effectiveDevice: String(this.effectiveDevices.get(config.id) ?? config.recommendedDevice),
+        },
+      });
       return pipe;
     } finally {
       this.loadingPromises.delete(config.id);
+      this.loadStartAt.delete(config.id);
     }
   }
 
@@ -144,6 +284,7 @@ export class TransformersManager {
     requestId: string,
     config: ModelConfig,
     onProgress?: (p: InferenceProgress) => void,
+    toolId?: string,
   ): Promise<CallablePipeline> {
     debug(`[TransformersManager] Loading ${config.id} (${config.hfPath})...`);
 
@@ -155,16 +296,61 @@ export class TransformersManager {
       message: `Preparing ${config.name}...`,
     });
 
+    // Cache probe and dtype-availability lookup — emit both, then proceed regardless.
+    // Wrapped in try/catch: failures here must not abort the load.
+    let cached = false;
+    let availableDtypes: string[] | undefined;
+    try {
+      cached = await ModelRegistry.is_pipeline_cached(config.task, config.hfPath).catch(() => false);
+    } catch {
+      // ignore
+    }
+    try {
+      availableDtypes = await ModelRegistry.get_available_dtypes(config.hfPath).catch(() => undefined);
+    } catch {
+      // ignore
+    }
+    this.emit('cache-check', {
+      toolId,
+      modelId: config.id,
+      detail: { cached, hfPath: config.hfPath },
+    });
+    if (!cached) {
+      this.emit('download', {
+        toolId,
+        modelId: config.id,
+        detail: {
+          hfPath: config.hfPath,
+          ...(config.memoryFootprintMB ? { approxSizeMB: config.memoryFootprintMB } : {}),
+        },
+      });
+    }
+    this.emit('dtype-chosen', {
+      toolId,
+      modelId: config.id,
+      detail: {
+        chosen: String(config.quantization),
+        ...(availableDtypes && availableDtypes.length > 0
+          ? { available: availableDtypes.join(', ') }
+          : {}),
+      },
+    });
+    this.emit('device-chosen', {
+      toolId,
+      modelId: config.id,
+      detail: { preferred: String(config.recommendedDevice) },
+    });
+
     // image-text-to-text models (e.g. Florence-2) moved out of AutoModelForVision2Seq in v4
     // and must be loaded directly via AutoModelForImageTextToText.
     if (config.task === 'image-text-to-text') {
-      return this.loadImageTextToTextModel(requestId, config, onProgress);
+      return this.loadImageTextToTextModel(requestId, config, onProgress, toolId);
     }
 
     // CLIP: pipeline('feature-extraction') hangs ORT session creation in v4 for multimodal
     // models. Load text and vision encoders separately via their dedicated classes.
     if (config.loader === 'clip') {
-      return this.loadClipModel(requestId, config, onProgress);
+      return this.loadClipModel(requestId, config, onProgress, toolId);
     }
 
     // Heartbeat: fire a synthetic progress every 30 s while the model loads.
@@ -219,7 +405,17 @@ export class TransformersManager {
           effectiveDevice = 'wasm';
           // WASM doesn't support fp16 well, downgrade to q8 if needed
           const fallbackDtype = preferredDtype === 'fp16' ? 'q8' : preferredDtype;
-          
+          this.emit('device-fallback', {
+            toolId,
+            modelId: config.id,
+            detail: {
+              from: 'webgpu',
+              to: 'wasm',
+              ...(fallbackDtype ? { fallbackDtype } : {}),
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
+
           console.log(`[TransformersManager] Attempting fallback for ${config.id} on WASM with dtype ${fallbackDtype}...`);
           pipe = await pipeline(config.task as Parameters<typeof pipeline>[0], config.hfPath, {
             ...(fallbackDtype ? { dtype: fallbackDtype } : {}),
@@ -252,6 +448,7 @@ export class TransformersManager {
     requestId: string,
     config: ModelConfig,
     onProgress?: (p: InferenceProgress) => void,
+    toolId?: string,
   ): Promise<CallablePipeline> {
     const progressCb = (info: unknown) => {
       if (typeof info !== 'object' || info === null || !('status' in info)) return;
@@ -292,6 +489,16 @@ export class TransformersManager {
           console.warn(`[TransformersManager] WebGPU load failed for ${config.id} (Florence-2), falling back to WASM:`, err);
           effectiveDevice = 'wasm';
           const fallbackDtype = preferredDtype === 'fp16' ? 'q8' : preferredDtype;
+          this.emit('device-fallback', {
+            toolId,
+            modelId: config.id,
+            detail: {
+              from: 'webgpu',
+              to: 'wasm',
+              ...(fallbackDtype ? { fallbackDtype } : {}),
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
           console.log(`[TransformersManager] Attempting fallback for ${config.id} (Florence-2) on WASM with dtype ${fallbackDtype}...`);
           model = await AutoModelForImageTextToText.from_pretrained(config.hfPath, {
             ...(fallbackDtype ? { dtype: fallbackDtype } : {}),
@@ -372,6 +579,7 @@ export class TransformersManager {
     requestId: string,
     config: ModelConfig,
     onProgress?: (p: InferenceProgress) => void,
+    toolId?: string,
   ): Promise<CallablePipeline> {
     const progressCb = (info: unknown) => {
       if (typeof info !== 'object' || info === null || !('status' in info)) return;
@@ -418,6 +626,16 @@ export class TransformersManager {
           console.warn(`[TransformersManager] WebGPU failed for ${config.id} (CLIP), falling back to WASM:`, err);
           effectiveDevice = 'wasm';
           const fallbackDtype = preferredDtype === 'fp16' ? 'q8' : preferredDtype;
+          this.emit('device-fallback', {
+            toolId,
+            modelId: config.id,
+            detail: {
+              from: 'webgpu',
+              to: 'wasm',
+              ...(fallbackDtype ? { fallbackDtype } : {}),
+              error: err instanceof Error ? err.message : String(err),
+            },
+          });
           const fallbackOpts = {
             progress_callback: progressCb,
             device: 'wasm' as const,
@@ -469,10 +687,19 @@ export class TransformersManager {
   /**
    * Evicts models if memory pressure is high or limit reached.
    */
-  private evictIfNecessary(newModel: ModelConfig): void {
+  private evictIfNecessary(newModel: ModelConfig, toolId?: string): void {
     // Strategy 1: If it's a "large" model, clear EVERYTHING else to be safe
     if (newModel.isLargeModel) {
       console.warn(`[TransformersManager] Large model ${newModel.id} requested. Evicting all other models.`);
+      const victims = Array.from(this.pipelines.keys()).filter(id => !this.loadingPromises.has(id));
+      for (const id of victims) {
+        const ageMs = Date.now() - (this.lastUsedAt.get(id) ?? Date.now());
+        this.emit('evicted', {
+          toolId,
+          modelId: id,
+          detail: { reason: 'large-model', incoming: newModel.id, ageMs, maxLoaded: MAX_LOADED_MODELS },
+        });
+      }
       this.disposeAllExcept([]);
       return;
     }
@@ -487,9 +714,15 @@ export class TransformersManager {
         const sorted = evictableModels
           .map(id => [id, this.lastUsedAt.get(id) || 0] as [string, number])
           .sort(([, a], [, b]) => a - b);
-        
+
         const [lruId] = sorted[0];
+        const ageMs = Date.now() - (this.lastUsedAt.get(lruId) ?? Date.now());
         debug(`[TransformersManager] Limit reached. Evicting LRU model: ${lruId}`);
+        this.emit('evicted', {
+          toolId,
+          modelId: lruId,
+          detail: { reason: 'lru', incoming: newModel.id, ageMs, maxLoaded: MAX_LOADED_MODELS },
+        });
         this.disposeModel(lruId);
       }
     }
@@ -587,6 +820,10 @@ export class TransformersManager {
     const config = getModelConfig(id);
     this.disposeModel(id);
     const result = await ModelRegistry.clear_pipeline_cache(config.task, config.hfPath);
+    this.emit('cache-cleared', {
+      modelId: id,
+      detail: { filesDeleted: result.filesDeleted, hfPath: config.hfPath },
+    });
     return { filesDeleted: result.filesDeleted };
   }
 }

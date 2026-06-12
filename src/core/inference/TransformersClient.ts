@@ -2,10 +2,31 @@ import type {
   InferenceRequest,
   InferenceResult,
   InferenceProgress,
+  MachineEvent,
   WorkerStatus,
   WorkerMessage,
   WorkerRequestMessage,
 } from './types';
+import { useMachineRoomStore } from '../../stores/machineRoomStore';
+
+const newEventId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fallthrough
+  }
+  return `me_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const pushClientEvent = (event: MachineEvent) => {
+  try {
+    useMachineRoomStore.getState().pushEvent(event);
+  } catch {
+    // never throw from emission
+  }
+};
 
 const MAX_RESTARTS = 3;
 // 5 minutes: ORT session initialisation after a cache hit is CPU-bound and silent (no download
@@ -127,6 +148,11 @@ export class TransformersClient {
           }
           break;
         }
+
+        case 'machine-event': {
+          pushClientEvent(message.data);
+          break;
+        }
       }
     };
 
@@ -199,6 +225,13 @@ export class TransformersClient {
   }
 
   private handleWorkerCrash() {
+    pushClientEvent({
+      id: newEventId(),
+      ts: Date.now(),
+      kind: 'worker-crash',
+      summary: '',
+      detail: { restartCount: this.restartCount, maxRestarts: MAX_RESTARTS },
+    });
     if (this.restartCount < MAX_RESTARTS) {
       this.restartCount++;
       console.warn(
@@ -208,6 +241,13 @@ export class TransformersClient {
         new Error('Worker crashed during inference. Please retry.'),
       );
       this.initWorker();
+      pushClientEvent({
+        id: newEventId(),
+        ts: Date.now(),
+        kind: 'worker-restart',
+        summary: '',
+        detail: { restartCount: this.restartCount, maxRestarts: MAX_RESTARTS },
+      });
     } else {
       console.error('[TransformersClient] Fatal: Worker crashed too many times.');
       this.fatalError = new Error(

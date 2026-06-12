@@ -2,11 +2,19 @@ import { transformersManager } from '../core/inference/TransformersManager';
 import type {
   InferenceProgress,
   InferenceRequest,
+  MachineEvent,
   WorkerMessage,
   WorkerRequestMessage,
   WorkerStatusRequestMessage,
   WorkerClearCacheRequestMessage,
 } from '../core/inference/types';
+
+// Wire machine events from the manager out to the main thread. Fire-and-forget:
+// the manager already wraps emit() in try/catch.
+transformersManager.setMachineEventEmitter((event: MachineEvent) => {
+  const message: WorkerMessage = { type: 'machine-event', data: event };
+  self.postMessage(message);
+});
 
 /**
  * Transformers Web Worker.

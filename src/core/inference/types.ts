@@ -192,11 +192,51 @@ export interface WorkerStatusMessage {
   };
 }
 
+// ── Machine events (decision journal) ──────────────────────────
+// Emitted at every notable decision point in the model lifecycle so the UI
+// can narrate them in plain language. Emission is fire-and-forget — a bug
+// here must never block inference (see TransformersManager.emitEvent).
+
+export type MachineEventKind =
+  | 'load-requested'
+  | 'cache-check'
+  | 'download'
+  | 'dtype-chosen'
+  | 'device-chosen'
+  | 'device-fallback'
+  | 'threads-capped'
+  | 'evicted'
+  | 'loaded'
+  | 'inference-start'
+  | 'inference-done'
+  | 'watchdog-timeout'
+  | 'worker-crash'
+  | 'worker-restart'
+  | 'cache-cleared';
+
+export interface MachineEvent {
+  id: string;
+  ts: number;
+  toolId?: string;
+  modelId?: string;
+  kind: MachineEventKind;
+  /** ONE plain-language sentence, no jargon. */
+  summary: string;
+  /** Technical facts for the expandable view. */
+  detail?: Record<string, string | number | boolean>;
+}
+
+export interface WorkerMachineEventMessage {
+  type: 'machine-event';
+  data: MachineEvent;
+}
+
 export type WorkerMessage =
   | WorkerProgressMessage
   | WorkerResultMessage
   | WorkerErrorMessage
-  | WorkerStatusMessage;
+  | WorkerStatusMessage
+  | WorkerMachineEventMessage;
 
 export interface WorkerStatusRequestMessage {
   type: 'get-status';
