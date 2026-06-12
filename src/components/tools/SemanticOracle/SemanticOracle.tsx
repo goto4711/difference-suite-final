@@ -4,6 +4,7 @@ import { transformersClient } from '../../../core/inference/TransformersClient';
 import { Sparkles, BookOpen, GitBranch, Lightbulb, Send, BrainCircuit, FileText, ChevronDown } from 'lucide-react';
 import type { DataItem } from '@difference-suite/shared/types';
 import { debug } from '../../../utils/log';
+import { MachineWorkDrawer } from '../../machineRoom/MachineWorkDrawer';
 
 const MODES = [
     { id: 'define', label: 'Define', icon: BookOpen, prompt: "Define and explain this concept clearly: " },
@@ -229,6 +230,10 @@ const SemanticOracle = () => {
                         </div>
                     </div>
 
+                </div>
+
+                <div className="w-full max-w-3xl">
+                    <MachineWorkDrawer toolId="SemanticOracle" />
                 </div>
 
             </div>
