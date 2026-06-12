@@ -13,10 +13,12 @@ import {
     BrainCircuit,
     Timer,
     Cog,
+    MessageSquareWarning,
     type LucideIcon
 } from 'lucide-react';
 
 const MachineRoom = lazy(() => import('../components/machineRoom/MachineRoom'));
+const ContestationsPage = lazy(() => import('../components/contestation/ContestationsPage'));
 const AmbiguityAmplifier = lazy(() => import('../components/tools/AmbiguityAmplifier/AmbiguityAmplifier'));
 const ContextWeaver = lazy(() => import('../components/tools/ContextWeaver/ContextWeaver'));
 const DeepVectorMirror = lazy(() => import('../components/tools/DeepVectorMirror/DeepVectorMirror'));
@@ -59,6 +61,13 @@ export const MAIN_MENU_EXTRAS: ToolDefinition[] = [
         icon: Cog,
         description: 'See which models are loaded, what was evicted, what failed, in plain language.',
         component: MachineRoom,
+    },
+    {
+        path: '/contestations',
+        label: 'Contestations',
+        icon: MessageSquareWarning,
+        description: 'Your recorded dissent against tool outputs. Export as an evidence packet.',
+        component: ContestationsPage,
     },
 ];
 
