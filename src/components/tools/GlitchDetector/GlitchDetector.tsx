@@ -5,6 +5,7 @@ import * as tf from '@tensorflow/tfjs';
 import { AlertTriangle, Target, Trash2, Activity, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import GlitchDetectorTextContent from './components/GlitchDetectorText';
+import ContestButton from '../../contestation/ContestButton';
 
 type InputMode = 'image' | 'text';
 
@@ -358,6 +359,16 @@ const GlitchDetectorImage = ({ setInputMode }: { setInputMode: (m: InputMode) =>
                                 {(confidence * 100).toFixed(0)}%
                             </div>
                         </div>
+
+                        {selectedItem && selectedItem.type === 'image' && exampleCount > 0 && (
+                            <div className="mt-3 flex justify-center">
+                                <ContestButton
+                                    toolId="GlitchDetector"
+                                    outputSummary={`${selectedItem.name} scored ${(confidence * 100).toFixed(0)}% normality at threshold ${threshold.toFixed(2)} → ${isAnomaly ? 'GLITCH DETECTED' : 'Normal'}`}
+                                    settings={{ threshold: Number(threshold.toFixed(2)) }}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <button

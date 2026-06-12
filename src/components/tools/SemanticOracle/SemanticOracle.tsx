@@ -5,6 +5,7 @@ import { Sparkles, BookOpen, GitBranch, Lightbulb, Send, BrainCircuit, FileText,
 import type { DataItem } from '@difference-suite/shared/types';
 import { debug } from '../../../utils/log';
 import { MachineWorkDrawer } from '../../machineRoom/MachineWorkDrawer';
+import ContestButton from '../../contestation/ContestButton';
 
 const MODES = [
     { id: 'define', label: 'Define', icon: BookOpen, prompt: "Define and explain this concept clearly: " },
@@ -141,6 +142,17 @@ const SemanticOracle = () => {
                     ) : output ? (
                         <div className="prose max-w-none">
                             <p className="text-xl leading-loose text-text font-medium font-serif border-l-4 border-alt pl-6 italic">{output}</p>
+                            <div className="mt-4 flex justify-end">
+                                <ContestButton
+                                    toolId="SemanticOracle"
+                                    outputSummary={(() => {
+                                        const promptLine = `Prompt (${mode}): ${input}`;
+                                        const answerLine = `Answer: ${output.length > 500 ? output.slice(0, 500) + '…' : output}`;
+                                        return `${promptLine}\n${answerLine}`;
+                                    })()}
+                                    settings={{ mode }}
+                                />
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-text-muted/40 gap-4">
