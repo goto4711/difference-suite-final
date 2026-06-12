@@ -1,49 +1,48 @@
+import { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import MainLayout from './components/shared/MainLayout';
+import MainLayout from '@difference-suite/shared/components/shared/MainLayout';
+import { Header as SharedHeader } from '@difference-suite/shared/components/shared/Header';
 import { Dashboard } from './components/dashboard/Dashboard';
-import DeepVectorMirror from './components/tools/DeepVectorMirror/DeepVectorMirror';
-import AmbiguityAmplifier from './components/tools/AmbiguityAmplifier/AmbiguityAmplifier';
-import GlitchDetector from './components/tools/GlitchDetector/GlitchDetector';
-import LatentSpaceNavigator from './components/tools/LatentSpaceNavigator/LatentSpaceNavigator';
-import DepthMirror from './components/tools/DepthMirror/DepthMirror';
-import { AuthGuard } from './components/auth/AuthGuard';
-// Temporarily commented out - need dependency fixes
-import ContextWeaver from './components/tools/ContextWeaver/ContextWeaver';
-import NetworkedNarratives from './components/tools/NetworkedNarratives/NetworkedNarratives';
-// Temporarily commented out - need dependency fixes
-import DetailExtractor from './components/tools/DetailExtractor/DetailExtractor';
-import DiscontinuityDetector from './components/tools/DiscontinuityDetector/DiscontinuityDetector';
-import NoisePredictor from './components/tools/NoisePredictor/NoisePredictor';
-import ThresholdAdjuster from './components/tools/ThresholdAdjuster/ThresholdAdjuster';
-import ImaginationInspector from './components/tools/ImaginationInspector/ImaginationInspector';
-import SemanticOracle from './components/tools/SemanticOracle/SemanticOracle';
-import VisualStoryteller from './components/tools/VisualStoryteller/VisualStoryteller';
-import DeepTime from './components/tools/DeepTime/DeepTime';
+import { AuthGuard } from '@difference-suite/shared/components/auth/AuthGuard';
+import { TOOLS } from './utils/navigation';
+import Sidebar from './components/shared/Sidebar';
+import { ModelStatusWidget } from './components/shared/ModelStatusWidget';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+import { EMBEDDING_MODEL_VERSION } from './core/inference/modelRegistry';
+
+const HeaderComponent = () => <SharedHeader StatusWidget={ModelStatusWidget} />;
 
 function App() {
+  const setEmbeddingModelVersion = useSuiteStore(s => s.setEmbeddingModelVersion);
+  useEffect(() => { setEmbeddingModelVersion(EMBEDDING_MODEL_VERSION); }, [setEmbeddingModelVersion]);
+
   return (
     <Router>
-      <MainLayout>
+      <MainLayout HeaderComponent={HeaderComponent} SidebarComponent={Sidebar}>
         <AuthGuard>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/deep-vector-mirror" element={<DeepVectorMirror />} />
-            <Route path="/ambiguity-amplifier" element={<AmbiguityAmplifier />} />
-            <Route path="/glitch-detector" element={<GlitchDetector />} />
-            <Route path="/latent-navigator" element={<LatentSpaceNavigator />} />
-            <Route path="/depth-mirror" element={<DepthMirror />} />
-            <Route path="/context-weaver" element={<ContextWeaver />} />
-            <Route path="/networked-narratives" element={<NetworkedNarratives />} />
-            <Route path="/detail-extractor" element={<DetailExtractor />} />
-            <Route path="/discontinuity-detector" element={<DiscontinuityDetector />} />
-            <Route path="/threshold-adjuster" element={<ThresholdAdjuster />} />
-            <Route path="/noise-predictor" element={<NoisePredictor />} />
-            <Route path="/imagination-inspector" element={<ImaginationInspector />} />
-            <Route path="/semantic-oracle" element={<SemanticOracle />} />
-            <Route path="/visual-storyteller" element={<VisualStoryteller />} />
-            <Route path="/deep-time" element={<DeepTime />} />
-            <Route path="*" element={<div className="p-8 text-center text-xl">Tool Coming Soon...</div>} />
-          </Routes>
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center text-center text-xl font-bold text-main">
+                Loading tool...
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              {TOOLS.map((tool) => {
+                const ToolComponent = tool.component;
+
+                return (
+                  <Route
+                    key={tool.path}
+                    path={tool.path}
+                    element={<ToolComponent />}
+                  />
+                );
+              })}
+              <Route path="*" element={<div className="p-8 text-center text-xl">Tool Coming Soon...</div>} />
+            </Routes>
+          </Suspense>
         </AuthGuard>
       </MainLayout>
     </Router>

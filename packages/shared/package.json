@@ -1,0 +1,34 @@
+{
+  "name": "@difference-suite/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./stores/suiteStore": "./src/stores/suiteStore.ts",
+    "./config/authConfig": "./src/config/authConfig.ts",
+    "./utils/blobStore": "./src/utils/blobStore.ts",
+    "./components/auth/AuthGuard": "./src/components/auth/AuthGuard.tsx",
+    "./components/auth/LoginModal": "./src/components/auth/LoginModal.tsx",
+    "./components/dashboard/CollectionSidebar": "./src/components/dashboard/CollectionSidebar.tsx",
+    "./components/dashboard/ContextPanel": "./src/components/dashboard/ContextPanel.tsx",
+    "./components/dashboard/DataGrid": "./src/components/dashboard/DataGrid.tsx",
+    "./components/dashboard/modals/WebcamModal": "./src/components/dashboard/modals/WebcamModal.tsx",
+    "./components/shared/DataUploadModal": "./src/components/shared/DataUploadModal.tsx",
+    "./components/shared/DataUploader": "./src/components/shared/DataUploader.tsx",
+    "./components/shared/DatasetSelector": "./src/components/shared/DatasetSelector.tsx",
+    "./components/shared/StatsRow": "./src/components/shared/StatsRow.tsx",
+    "./components/shared/Header": "./src/components/shared/Header.tsx",
+    "./components/shared/MainLayout": "./src/components/shared/MainLayout.tsx",
+    "./components/shared/ModelStatusWidget": "./src/components/shared/ModelStatusWidget.tsx",
+    "./components/shared/Sidebar": "./src/components/shared/Sidebar.tsx",
+    "./components/dashboard/modals/AudioRecorderModal": "./src/components/dashboard/modals/AudioRecorderModal.tsx"
+  },
+  "peerDependencies": {
+    "lucide-react": ">=0.555.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0",
+    "react-router-dom": ">=7.0.0",
+    "zustand": ">=5.0.0"
+  }
+}

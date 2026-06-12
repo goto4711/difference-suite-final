@@ -26,7 +26,7 @@ const SDShowcase: React.FC = () => {
             const result = await inferenceManager.generateSD(prompt);
             setGeneratedImage(result);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             setIsModelLoading(false);
         } finally {

@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { glitchTextModelManager } from './GlitchTextModelManager';
 import ToolLayout from '../../../shared/ToolLayout';
 import { Loader2, Plus, Trash2, AlertTriangle, CheckCircle, FolderOpen, Play } from 'lucide-react';
-import { useSuiteStore } from '../../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+import type { Collection, DataItem } from '@difference-suite/shared/types';
+
+const hasTextContent = (item: DataItem): item is DataItem & { content: string } =>
+    item.type === 'text' && typeof item.content === 'string' && item.content.length > 0;
 
 const GlitchDetectorText = () => {
     const { collections, dataset } = useSuiteStore();
@@ -19,7 +23,9 @@ const GlitchDetectorText = () => {
 
     // Filter collections that contain text items
     const textCollections = useMemo(() => {
-        return collections.filter((c: any) => dataset.some((item: any) => item.collectionId === c.id && item.type === 'text'));
+        return collections.filter((collection: Collection) =>
+            dataset.some((item: DataItem) => item.collectionId === collection.id && item.type === 'text')
+        );
     }, [collections, dataset]);
 
     useEffect(() => {
@@ -41,9 +47,11 @@ const GlitchDetectorText = () => {
         if (!collectionId) return;
 
         setIsTraining(true);
-        const textItems = dataset.filter((item: any) => item.collectionId === collectionId && item.type === 'text' && item.content);
+        const textItems = dataset.filter((item: DataItem): item is DataItem & { content: string } =>
+            item.collectionId === collectionId && hasTextContent(item)
+        );
         for (const item of textItems) {
-            await glitchTextModelManager.addExample(item.content as string);
+            await glitchTextModelManager.addExample(item.content);
         }
         setExampleCount(glitchTextModelManager.getExampleCount());
         setIsTraining(false);
@@ -168,8 +176,8 @@ const GlitchDetectorText = () => {
                         className="flex-1 p-1 text-xs border border-gray-200 rounded bg-gray-50"
                     >
                         <option value="">Load from collection...</option>
-                        {textCollections.map((c: any) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                        {textCollections.map((collection: Collection) => (
+                            <option key={collection.id} value={collection.id}>{collection.name}</option>
                         ))}
                     </select>
                     <button

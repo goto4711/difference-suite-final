@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { textModelManager } from './TextModelManager';
 import ToolLayout from '../../../shared/ToolLayout';
 import { Loader2, Plus, Trash2, Volume2, FolderOpen, Play } from 'lucide-react';
-import { useSuiteStore } from '../../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+import type { Collection, DataItem } from '@difference-suite/shared/types';
+import { debug } from '../../../../utils/log';
+
+type Prediction = { className: string; probability: number };
+
+const hasTextContent = (item: DataItem): item is DataItem & { content: string } =>
+    item.type === 'text' && typeof item.content === 'string' && item.content.length > 0;
+
+const getTextContent = (item: DataItem) => (typeof item.content === 'string' ? item.content : '');
 
 const AmbiguityAmplifierText = () => {
     const { collections, dataset } = useSuiteStore();
@@ -19,33 +28,34 @@ const AmbiguityAmplifierText = () => {
 
     const [testSentence, setTestSentence] = useState('This is a test sentence.');
     const [noiseLevel, setNoiseLevel] = useState(0);
-    const [noisySentence, setNoisySentence] = useState('');
-    const [predictions, setPredictions] = useState<{ className: string; probability: number }[]>([]);
+    const [predictions, setPredictions] = useState<Prediction[]>([]);
 
     // Filter collections that contain text items
     const textCollections = useMemo(() => {
-        return collections.filter((c: any) => dataset.some((item: any) => item.collectionId === c.id && item.type === 'text'));
+        return collections.filter((collection: Collection) =>
+            dataset.some((item: DataItem) => item.collectionId === collection.id && item.type === 'text')
+        );
     }, [collections, dataset]);
 
     // Debug: log collections and dataset on change
     useEffect(() => {
-        console.log('[AmbiguityAmplifierText] Collections:', collections.map((c: any) => ({ id: c.id, name: c.name })));
-        console.log('[AmbiguityAmplifierText] Dataset:', dataset.length, 'items. Text items by collection:',
-            collections.map((c: any) => ({
-                name: c.name,
-                id: c.id,
-                textCount: dataset.filter((i: any) => i.collectionId === c.id && i.type === 'text').length
+        debug('[AmbiguityAmplifierText] Collections:', collections.map((collection: Collection) => ({ id: collection.id, name: collection.name })));
+        debug('[AmbiguityAmplifierText] Dataset:', dataset.length, 'items. Text items by collection:',
+            collections.map((collection: Collection) => ({
+                name: collection.name,
+                id: collection.id,
+                textCount: dataset.filter((item: DataItem) => item.collectionId === collection.id && item.type === 'text').length
             }))
         );
-        console.log('[AmbiguityAmplifierText] textCollections (filtered):', textCollections.map((c: any) => c.name));
+        debug('[AmbiguityAmplifierText] textCollections (filtered):', textCollections.map((collection: Collection) => collection.name));
     }, [collections, dataset, textCollections]);
 
     useEffect(() => {
         async function init() {
-            console.log('[AmbiguityAmplifierText] Initializing model...');
+            debug('[AmbiguityAmplifierText] Initializing model...');
             try {
                 await textModelManager.loadModel();
-                console.log('[AmbiguityAmplifierText] Model loaded successfully!');
+                debug('[AmbiguityAmplifierText] Model loaded successfully!');
                 setIsModelReady(true);
             } catch (err) {
                 console.error('[AmbiguityAmplifierText] Model loading failed:', err);
@@ -55,25 +65,25 @@ const AmbiguityAmplifierText = () => {
     }, []);
 
     const addExample = useCallback(async (text: string, label: string) => {
-        console.log('[AmbiguityAmplifierText] addExample called:', { text, label, isModelReady });
+        debug('[AmbiguityAmplifierText] addExample called:', { text, label, isModelReady });
         if (!text.trim()) {
             console.warn('[AmbiguityAmplifierText] Empty text, skipping');
             return;
         }
         await textModelManager.addExample(text, label);
         const counts = textModelManager.getExampleCount();
-        console.log('[AmbiguityAmplifierText] After adding, counts:', counts);
+        debug('[AmbiguityAmplifierText] After adding, counts:', counts);
         setExampleCounts(counts);
         if (label === classA) setInputTextA('');
         else setInputTextB('');
-    }, [classA, classB, isModelReady]);
+    }, [classA, isModelReady]);
 
     const trainFromCollection = useCallback(async (collectionId: string, label: string) => {
-        console.log('[AmbiguityAmplifierText] trainFromCollection called:', { collectionId, label, datasetLength: dataset.length });
+        debug('[AmbiguityAmplifierText] trainFromCollection called:', { collectionId, label, datasetLength: dataset.length });
 
         // Debug: log all items in the collection
-        const allCollectionItems = dataset.filter((item: any) => item.collectionId === collectionId);
-        console.log('[AmbiguityAmplifierText] All items in collection:', allCollectionItems.length, allCollectionItems.map((i: any) => ({ name: i.name, type: i.type, contentType: typeof i.content, hasContent: !!i.content })));
+        const allCollectionItems = dataset.filter((item: DataItem) => item.collectionId === collectionId);
+        debug('[AmbiguityAmplifierText] All items in collection:', allCollectionItems.length, allCollectionItems.map((item: DataItem) => ({ name: item.name, type: item.type, contentType: typeof item.content, hasContent: !!item.content })));
 
         if (!collectionId) {
             console.warn('[AmbiguityAmplifierText] No collection selected');
@@ -81,8 +91,10 @@ const AmbiguityAmplifierText = () => {
         }
 
         setIsTraining(true);
-        const textItems = dataset.filter((item: any) => item.collectionId === collectionId && item.type === 'text' && item.content);
-        console.log('[AmbiguityAmplifierText] Found text items:', textItems.length);
+        const textItems = dataset.filter((item: DataItem): item is DataItem & { content: string } =>
+            item.collectionId === collectionId && hasTextContent(item)
+        );
+        debug('[AmbiguityAmplifierText] Found text items:', textItems.length);
 
         if (textItems.length === 0) {
             console.warn('[AmbiguityAmplifierText] No text items with content found!');
@@ -91,8 +103,8 @@ const AmbiguityAmplifierText = () => {
         }
 
         for (const item of textItems) {
-            const contentStr = typeof item.content === 'string' ? item.content : '';
-            console.log('[AmbiguityAmplifierText] Training with:', contentStr.substring(0, 50));
+            const contentStr = getTextContent(item);
+            debug('[AmbiguityAmplifierText] Training with:', contentStr.substring(0, 50));
             await textModelManager.addExample(contentStr, label);
         }
         setExampleCounts(textModelManager.getExampleCount());
@@ -101,7 +113,7 @@ const AmbiguityAmplifierText = () => {
 
     const applyNoise = useCallback((text: string, level: number): string => {
         if (level === 0) return text;
-        let chars = text.split('');
+        const chars = text.split('');
         for (let i = 0; i < chars.length; i++) {
             if (Math.random() < level * 0.2) {
                 const type = Math.random();
@@ -121,24 +133,29 @@ const AmbiguityAmplifierText = () => {
         return chars.join('');
     }, []);
 
-    useEffect(() => {
-        const noisy = applyNoise(testSentence, noiseLevel);
-        setNoisySentence(noisy);
+    const noisySentence = useMemo(() => applyNoise(testSentence, noiseLevel), [applyNoise, noiseLevel, testSentence]);
 
+    useEffect(() => {
+        let cancelled = false;
         const predict = async () => {
             if (isModelReady && (exampleCounts[classA] || 0) > 0 && (exampleCounts[classB] || 0) > 0) {
-                const result = await textModelManager.predict(noisy);
-                if (result && result.confidences) {
+                const result = await textModelManager.predict(noisySentence);
+                if (!cancelled && result && result.confidences) {
                     const preds = Object.entries(result.confidences).map(([label, score]) => ({
                         className: label,
                         probability: score as number
                     })).sort((a, b) => b.probability - a.probability);
                     setPredictions(preds);
                 }
+            } else if (!cancelled) {
+                setPredictions([]);
             }
         };
-        predict();
-    }, [testSentence, noiseLevel, exampleCounts, isModelReady, classA, classB, applyNoise]);
+        void predict();
+        return () => {
+            cancelled = true;
+        };
+    }, [noisySentence, exampleCounts, isModelReady, classA, classB]);
 
     const handleReset = () => {
         textModelManager.clear();
@@ -238,8 +255,8 @@ const AmbiguityAmplifierText = () => {
                             className="flex-1 p-1 text-xs border border-gray-200 rounded bg-gray-50"
                         >
                             <option value="">Load from collection...</option>
-                            {textCollections.map((c: any) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                            {textCollections.map((collection: Collection) => (
+                                <option key={collection.id} value={collection.id}>{collection.name}</option>
                             ))}
                         </select>
                         <button
@@ -285,8 +302,8 @@ const AmbiguityAmplifierText = () => {
                             className="flex-1 p-1 text-xs border border-gray-200 rounded bg-gray-50"
                         >
                             <option value="">Load from collection...</option>
-                            {textCollections.map((c: any) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                            {textCollections.map((collection: Collection) => (
+                                <option key={collection.id} value={collection.id}>{collection.name}</option>
                             ))}
                         </select>
                         <button

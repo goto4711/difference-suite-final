@@ -92,9 +92,9 @@ Please analyze how effectively these abstract, generative elements (the ${colorD
             
             setAnalysisResult(textResponse);
             setProcessState('done');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            setAnalysisResult(`Error: ${error.message}`);
+            setAnalysisResult(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
             setProcessState('done');
             setIsModelLoading(false);
             setLastEvent(null);

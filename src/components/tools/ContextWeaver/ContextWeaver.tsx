@@ -1,11 +1,37 @@
 import { useState } from 'react';
-import { Search, Info, FileText } from 'lucide-react';
+import { Search, Info } from 'lucide-react';
 import RadialViz from './components/RadialViz';
 import ComparisonTable from './components/ComparisonTable';
 import VectorInspector from './components/VectorInspector';
 import { processContexts, extractSemanticKeywords } from './utils/ContextProcessor';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
+
+type ContextDefinition = {
+    name: string;
+    color: string;
+    items: string[];
+};
+
+type ContextMatch = {
+    text: string;
+    similarity: number;
+    vector: number[];
+};
+
+type ContextResult = {
+    contextName: string;
+    color: string;
+    matches: ContextMatch[];
+    queryVector: number[];
+};
+
+type SelectedMatch = {
+    text: string;
+    vector: number[];
+    queryVector: number[];
+    color: string;
+};
 
 const DEMO_CONTEXTS = [
     {
@@ -30,11 +56,11 @@ const ContextWeaver = () => {
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [queryText, setQueryText] = useState("");
-    const [contexts, setContexts] = useState(DEMO_CONTEXTS);
-    const [results, setResults] = useState<any[]>([]);
+    const [contexts, setContexts] = useState<ContextDefinition[]>(DEMO_CONTEXTS);
+    const [results, setResults] = useState<ContextResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState("");
-    const [selectedMatch, setSelectedMatch] = useState<any>(null);
+    const [selectedMatch, setSelectedMatch] = useState<SelectedMatch | null>(null);
     const [inputMode, setInputMode] = useState<'query' | 'selection'>('query');
 
     // Use selected text item as query if available and mode is selection
@@ -94,7 +120,7 @@ const ContextWeaver = () => {
 
         try {
             setStatus("Analyzing contexts...");
-            const analysisResults = await processContexts(query, contexts);
+        const analysisResults = await processContexts(query, contexts) as ContextResult[];
             setResults(analysisResults);
             setStatus("");
         } catch (error) {
@@ -105,12 +131,12 @@ const ContextWeaver = () => {
         }
     };
 
-    const handleSelectMatch = (match: any, queryVector: any, color: string) => {
+    const handleSelectMatch = (match: ContextMatch, queryVector: number[], color: string) => {
         setSelectedMatch({
             text: match.text,
             vector: match.vector,
-            queryVector: queryVector,
-            color: color
+            queryVector,
+            color
         });
     };
 

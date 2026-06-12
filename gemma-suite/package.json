@@ -10,14 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.0.1",
+    "@difference-suite/shared": "file:../packages/shared",
+    "@huggingface/transformers": "^4.2.0",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
-    "onnxruntime-web": "^1.25.0-dev.20260327-722743c0e2",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "react-dropzone": "^15.0.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.0",

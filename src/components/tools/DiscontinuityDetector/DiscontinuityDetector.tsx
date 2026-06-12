@@ -1,12 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Activity, RefreshCw, Brain, Info } from 'lucide-react';
 import TimelineViz from './components/TimelineViz';
 import AnomalyInspector from './components/AnomalyInspector';
 import { generateMockData } from './utils/AnomalyDetector';
 import { DeepAnomalyDetector } from './utils/DeepAnomalyDetector';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { parseCSV } from './utils/DataProcessor';
 import ToolLayout from '../../shared/ToolLayout';
+import type { DataItem } from '@difference-suite/shared/types';
+
+interface TimeSeriesDatum {
+    id: number | string;
+    value: number;
+    timestamp?: string;
+    content?: string;
+    [key: string]: unknown;
+}
+
+interface AnomalyDatum extends TimeSeriesDatum {
+    predictedValue: number | null;
+    error: number;
+    isAnomaly: boolean;
+    score?: number;
+}
 
 const DiscontinuityDetector = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
@@ -17,46 +33,15 @@ const DiscontinuityDetector = () => {
         i.type === 'timeseries' || i.type === 'tabular' || i.name.endsWith('.json') || i.name.endsWith('.csv')
     );
 
-    const [data, setData] = useState<any[]>([]);
-    const [selectedAnomaly, setSelectedAnomaly] = useState<any>(null);
+    const [data, setData] = useState<AnomalyDatum[]>([]);
+    const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyDatum | null>(null);
     const [loading, setLoading] = useState(false);
     const [trainingProgress, setTrainingProgress] = useState(0);
     const [trainingLoss, setTrainingLoss] = useState<number | null>(null);
     const detectorRef = useRef(new DeepAnomalyDetector());
 
     // Load data: Prefer selected item, fallback to mock if empty
-    useEffect(() => {
-        if (selectedItem) {
-            loadFromItem(selectedItem);
-        } else if (data.length === 0) {
-            handleReset();
-        }
-    }, [selectedItem]);
-
-    const loadFromItem = async (item: any) => {
-        if (!item.content) return;
-
-        try {
-            let rawData: any[] = [];
-            // Parse based on type or content structure
-            if (item.name.endsWith('.json') || item.type === 'timeseries') {
-                rawData = JSON.parse(item.content as string);
-                // Handle various JSON shapes? Assuming generic array for now.
-                if (!Array.isArray(rawData)) throw new Error("JSON must be an array of objects");
-            } else {
-                // Assume CSV for everything else (tabular, text, or .csv)
-                rawData = parseCSV(item.content as string);
-            }
-
-            if (rawData && rawData.length > 5) {
-                await processDataWithModel(rawData);
-            }
-        } catch (error) {
-            console.error("Failed to load data from item:", error);
-        }
-    };
-
-    const processDataWithModel = async (rawData: any[]) => {
+    const processDataWithModel = useCallback(async (rawData: TimeSeriesDatum[]) => {
         setLoading(true);
         setTrainingProgress(0);
         setTrainingLoss(null);
@@ -69,7 +54,7 @@ const DiscontinuityDetector = () => {
             });
 
             // Detect anomalies
-            const processed = detectorRef.current.detect(rawData);
+            const processed = detectorRef.current.detect(rawData) as AnomalyDatum[];
             setData(processed);
             setSelectedAnomaly(null);
         } catch (error) {
@@ -78,12 +63,44 @@ const DiscontinuityDetector = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleReset = () => {
-        const mock = generateMockData(100);
-        processDataWithModel(mock);
-    };
+    const loadFromItem = useCallback(async (item: DataItem) => {
+        if (typeof item.content !== 'string') return;
+
+        try {
+            let rawData: TimeSeriesDatum[] = [];
+            // Parse based on type or content structure
+            if (item.name.endsWith('.json') || item.type === 'timeseries') {
+                const parsed = JSON.parse(item.content);
+                // Handle various JSON shapes? Assuming generic array for now.
+                if (!Array.isArray(parsed)) throw new Error("JSON must be an array of objects");
+                rawData = parsed as TimeSeriesDatum[];
+            } else {
+                // Assume CSV for everything else (tabular, text, or .csv)
+                rawData = parseCSV(item.content) as TimeSeriesDatum[];
+            }
+
+            if (rawData && rawData.length > 5) {
+                await processDataWithModel(rawData);
+            }
+        } catch (error) {
+            console.error("Failed to load data from item:", error);
+        }
+    }, [processDataWithModel]);
+
+    const handleReset = useCallback(() => {
+        const mock = generateMockData(100) as TimeSeriesDatum[];
+        void processDataWithModel(mock);
+    }, [processDataWithModel]);
+
+    useEffect(() => {
+        if (selectedItem) {
+            void loadFromItem(selectedItem);
+        } else if (data.length === 0) {
+            handleReset();
+        }
+    }, [selectedItem, data.length, handleReset, loadFromItem]);
 
     const mainContent = (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative">

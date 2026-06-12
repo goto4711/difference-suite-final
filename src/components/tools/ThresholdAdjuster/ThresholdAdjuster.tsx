@@ -6,12 +6,33 @@ import CaseList from './components/CaseList';
 import { Sliders, Scale, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { parseCSV } from '../DiscontinuityDetector/utils/DataProcessor.js';
+import type { DataItem } from '@difference-suite/shared/types';
+
+interface ThresholdCase {
+    id: string;
+    origin: string;
+    case_summary: string;
+    applicant_name: string;
+    risk_score: number;
+    original_score?: number;
+    [key: string]: unknown;
+}
+
+const asText = (value: unknown, fallback: string) =>
+    typeof value === 'string' && value.trim().length > 0
+        ? value
+        : typeof value === 'number'
+            ? String(value)
+            : fallback;
+
+const asNumericValue = (value: unknown) =>
+    typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN;
 
 const ThresholdAdjuster = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<ThresholdCase[]>(() => generateMockData(1000) as ThresholdCase[]);
     const [threshold, setThreshold] = useState(0.5);
 
     const dataItems = dataset.filter(i =>
@@ -20,26 +41,38 @@ const ThresholdAdjuster = () => {
 
     const selectedItem = dataset.find(i => i.id === activeItem);
 
-    const loadData = (item: any) => {
+    const loadData = (item: DataItem) => {
+        if (typeof item.content !== 'string') return;
+
         try {
-            let parsed = [];
+            let parsed: Array<Record<string, unknown>> = [];
             if (item.name.endsWith('.json')) {
-                parsed = JSON.parse(item.content);
+                const json = JSON.parse(item.content);
+                if (!Array.isArray(json)) return;
+                parsed = json as Array<Record<string, unknown>>;
             } else {
-                parsed = parseCSV(item.content);
+                parsed = parseCSV(item.content) as Array<Record<string, unknown>>;
             }
 
             // Normalize CSV data if needed (rename fields to match expected schema if possible, or just expect correct headers)
             // Expect: risk_score, applicant_name, etc.
             if (Array.isArray(parsed) && parsed.length > 0) {
-                let normalized = parsed.map((p, idx) => ({
-                    ...p,
-                    id: p.id || p.ID || `CASE-${idx + 1}`,
-                    origin: p.origin || p.source || p.location || p.country || "Uploaded Data",
-                    case_summary: p.case_summary || p.summary || p.description || p.text || p.content || "No summary provided.",
-                    applicant_name: p.applicant_name || p.name || p.applicant || `Applicant ${idx + 1}`,
-                    risk_score: p.risk_score !== undefined ? Number(p.risk_score) : (p.value !== undefined ? Number(p.value) : undefined)
-                })).filter(p => p.risk_score !== undefined && !isNaN(p.risk_score));
+                let normalized = parsed
+                    .map((entry, idx): ThresholdCase => {
+                        const riskScore = entry.risk_score !== undefined
+                            ? asNumericValue(entry.risk_score)
+                            : asNumericValue(entry.value);
+
+                        return {
+                            ...entry,
+                            id: asText(entry.id ?? entry.ID, `CASE-${idx + 1}`),
+                            origin: asText(entry.origin ?? entry.source ?? entry.location ?? entry.country, "Uploaded Data"),
+                            case_summary: asText(entry.case_summary ?? entry.summary ?? entry.description ?? entry.text ?? entry.content, "No summary provided."),
+                            applicant_name: asText(entry.applicant_name ?? entry.name ?? entry.applicant, `Applicant ${idx + 1}`),
+                            risk_score: riskScore
+                        };
+                    })
+                    .filter(entry => !Number.isNaN(entry.risk_score));
 
                 if (normalized.length > 0) {
                     // Auto-normalize if values are outside [0, 1]
@@ -52,7 +85,7 @@ const ThresholdAdjuster = () => {
                         normalized = normalized.map(p => ({
                             ...p,
                             original_score: p.risk_score,
-                            risk_score: range > 0 ? ((p.risk_score as number) - min) / range : 0.5
+                            risk_score: range > 0 ? (p.risk_score - min) / range : 0.5
                         }));
                     }
 
@@ -66,11 +99,24 @@ const ThresholdAdjuster = () => {
         }
     };
 
+    const isTabularItem = (item: DataItem | undefined): item is DataItem & { content: string } =>
+        !!item &&
+        typeof item.content === 'string' &&
+        // Blob/data URLs are binary items stored by reference — not parseable as CSV.
+        !item.content.startsWith('blob:') &&
+        !item.content.startsWith('data:') &&
+        (item.type === 'tabular' || item.type === 'timeseries' ||
+         item.name.endsWith('.csv') || item.name.endsWith('.json'));
+
     useEffect(() => {
-        if (selectedItem && selectedItem.content) {
-            loadData(selectedItem);
-        } else if (data.length === 0) {
-            setData(generateMockData(1000));
+        if (isTabularItem(selectedItem)) {
+            const loadTimer = window.setTimeout(() => {
+                loadData(selectedItem);
+            }, 0);
+
+            return () => {
+                window.clearTimeout(loadTimer);
+            };
         }
     }, [selectedItem]);
 
@@ -118,7 +164,7 @@ const ThresholdAdjuster = () => {
 
     const handleReset = () => {
         setActiveItem(null);
-        setData(generateMockData(1000));
+        setData(generateMockData(1000) as ThresholdCase[]);
     };
 
     const sideContent = (

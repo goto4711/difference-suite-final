@@ -1,62 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import type { LoadProgressEvent } from '../../core/inference/InferenceManager';
 
 interface ModelLoadingBarProps {
     progressEvent: LoadProgressEvent | null;
 }
 
+type ProgressPayload = {
+    loaded?: number;
+    total?: number;
+    progress?: number;
+};
+
+const isProgressPayload = (value: unknown): value is ProgressPayload =>
+    typeof value === 'object' && value !== null;
+
 export const ModelLoadingBar: React.FC<ModelLoadingBarProps> = ({ progressEvent }) => {
-    const [downloads, setDownloads] = useState<Record<string, { loaded: number, total: number, progress: number }>>({});
-    const [overallProgress, setOverallProgress] = useState(0);
-
-    useEffect(() => {
-        if (!progressEvent) return;
-
-        if (progressEvent.message) {
-            // General status message (e.g. 'Initializing...')
-            // We could display it, but maybe just stick to the bar
+    const overallProgress = useMemo(() => {
+        if (!progressEvent) {
+            return 0;
         }
 
-        if (progressEvent.progress && typeof progressEvent.progress === 'object') {
-            const data = progressEvent.progress;
-            
-            if (data.status === 'initiate' || data.status === 'download' || data.status === 'done') {
-                setDownloads(prev => {
-                    const newDownloads = { ...prev };
-                    if (data.file) {
-                        newDownloads[data.file] = {
-                            loaded: data.loaded || 0,
-                            total: data.total || 0,
-                            progress: data.progress || (data.status === 'done' ? 100 : 0)
-                        };
-                    }
-                    return newDownloads;
-                });
+        if (typeof progressEvent.progress === 'number') {
+            return progressEvent.progress <= 1
+                ? progressEvent.progress * 100
+                : progressEvent.progress;
+        }
+
+        if (isProgressPayload(progressEvent.progress)) {
+            const { loaded = 0, total = 0, progress = 0 } = progressEvent.progress;
+
+            if (total > 0) {
+                return Math.min((loaded / total) * 100, 100);
             }
+
+            return progress <= 1 ? progress * 100 : progress;
         }
+
+        return 0;
     }, [progressEvent]);
-
-    useEffect(() => {
-        const files = Object.values(downloads);
-        if (files.length === 0) return;
-
-        let totalLoaded = 0;
-        let totalSize = 0;
-        
-        // Use byte counts if accurate
-        files.forEach(f => {
-            totalLoaded += f.loaded;
-            totalSize += f.total;
-        });
-
-        if (totalSize > 0) {
-            setOverallProgress(Math.min((totalLoaded / totalSize) * 100, 100));
-        } else {
-            // Fallback to average percentage if total sizes aren't populated properly
-            const avg = files.reduce((acc, f) => acc + f.progress, 0) / files.length;
-            setOverallProgress(avg);
-        }
-    }, [downloads]);
 
     if (!progressEvent) return null;
 

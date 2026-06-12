@@ -5,8 +5,13 @@ import remarkGfm from 'remark-gfm';
 import { inferenceManager, type LoadProgressEvent } from '../../../core/inference/InferenceManager';
 import { ModelLoadingBar } from '../../shared/ModelLoadingBar';
 
+type ConversationMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
 const SemanticOraclePro: React.FC = () => {
-    const [messages, setMessages] = useState<any[]>([]);
+    const [messages, setMessages] = useState<ConversationMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isModelLoading, setIsModelLoading] = useState(false);
@@ -15,8 +20,8 @@ const SemanticOraclePro: React.FC = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const userMsg = { role: 'user', content: input };
-        const newMessages = [...messages, userMsg];
+        const userMsg: ConversationMessage = { role: 'user', content: input };
+        const newMessages: ConversationMessage[] = [...messages, userMsg];
         setMessages(newMessages);
         setInput('');
         setIsLoading(true);
@@ -45,11 +50,15 @@ const SemanticOraclePro: React.FC = () => {
             }
             
             // Extract thinking sequence if present (since Gemma thought text is often between specific tags)
-            const botMsg = { role: 'assistant', content: textResponse };
+            const botMsg: ConversationMessage = { role: 'assistant', content: textResponse };
             setMessages([...newMessages, botMsg]);
 
-        } catch (error: any) {
-             setMessages([...newMessages, { role: 'assistant', content: `Error: ${error.message}` }]);
+        } catch (error: unknown) {
+             const errorMsg: ConversationMessage = {
+                 role: 'assistant',
+                 content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+             };
+             setMessages([...newMessages, errorMsg]);
              setIsModelLoading(false);
         } finally {
             setIsLoading(false);

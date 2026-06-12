@@ -1,6 +1,7 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
 import * as tf from '@tensorflow/tfjs';
 import * as knnClassifier from '@tensorflow-models/knn-classifier';
+import { debug } from '../../../../utils/log';
 
 class GlitchTextModelManager {
     constructor() {
@@ -34,11 +35,11 @@ class GlitchTextModelManager {
         }
 
         this.isReady = true;
-        console.log("Glitch Detector Text Model initialized with Transformers.js worker backend");
+        debug("Glitch Detector Text Model initialized with Transformers.js worker backend");
     }
 
     async addExample(text) {
-        console.log('[GlitchTextModelManager] addExample (TransformersClient):', { text: text?.substring(0, 50) });
+        debug('[GlitchTextModelManager] addExample (TransformersClient):', { text: text?.substring(0, 50) });
         if (!this.isReady || !this.classifier) {
             await this.loadModel();
         }
@@ -53,7 +54,7 @@ class GlitchTextModelManager {
         const emb = result.output;
         const tensor = tf.tensor2d([emb]);
         this.classifier.addExample(tensor, 'normal');
-        console.log('[GlitchTextModelManager] Example added. Current count:', this.getExampleCount());
+        debug('[GlitchTextModelManager] Example added. Current count:', this.getExampleCount());
         tensor.dispose();
     }
 

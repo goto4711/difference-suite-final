@@ -1,3 +1,4 @@
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
     Search,
     Share2,
@@ -10,92 +11,138 @@ import {
     FileText,
     Sparkles,
     BrainCircuit,
-    Timer
+    Timer,
+    type LucideIcon
 } from 'lucide-react';
 
-export const TOOLS = [
+const AmbiguityAmplifier = lazy(() => import('../components/tools/AmbiguityAmplifier/AmbiguityAmplifier'));
+const ContextWeaver = lazy(() => import('../components/tools/ContextWeaver/ContextWeaver'));
+const DeepVectorMirror = lazy(() => import('../components/tools/DeepVectorMirror/DeepVectorMirror'));
+const DeepTime = lazy(() => import('../components/tools/DeepTime/DeepTime'));
+const DepthMirror = lazy(() => import('../components/tools/DepthMirror/DepthMirror'));
+const DetailExtractor = lazy(() => import('../components/tools/DetailExtractor/DetailExtractor'));
+const DiscontinuityDetector = lazy(() => import('../components/tools/DiscontinuityDetector/DiscontinuityDetector'));
+const GlitchDetector = lazy(() => import('../components/tools/GlitchDetector/GlitchDetector'));
+const ImaginationInspector = lazy(() => import('../components/tools/ImaginationInspector/ImaginationInspector'));
+const LatentSpaceNavigator = lazy(() => import('../components/tools/LatentSpaceNavigator/LatentSpaceNavigator'));
+const NetworkedNarratives = lazy(() => import('../components/tools/NetworkedNarratives/NetworkedNarratives'));
+const NoisePredictor = lazy(() => import('../components/tools/NoisePredictor/NoisePredictor'));
+const SemanticOracle = lazy(() => import('../components/tools/SemanticOracle/SemanticOracle'));
+const ThresholdAdjuster = lazy(() => import('../components/tools/ThresholdAdjuster/ThresholdAdjuster'));
+const VisualStoryteller = lazy(() => import('../components/tools/VisualStoryteller/VisualStoryteller'));
+
+export interface ToolDefinition {
+    path: string;
+    label: string;
+    icon: LucideIcon;
+    description: string;
+    component: LazyExoticComponent<ComponentType>;
+}
+
+export const TOOLS: ToolDefinition[] = [
     {
         path: '/ambiguity-amplifier',
         label: 'Ambiguity Amplifier',
         icon: Zap,
-        description: 'Amplify ambiguous elements in the data stream.'
+        description: 'Amplify ambiguous elements in the data stream.',
+        component: AmbiguityAmplifier
     },
     {
         path: '/context-weaver',
         label: 'Context Weaver',
         icon: Share2,
-        description: 'Weave together context from multiple sources.'
+        description: 'Weave together context from multiple sources.',
+        component: ContextWeaver
     },
     {
         path: '/deep-vector-mirror',
         label: 'Deep Vector Mirror',
         icon: Layers,
-        description: ' Visualize deep learning vectorization.'
+        description: 'Visualize deep learning vectorization.',
+        component: DeepVectorMirror
     },
     {
         path: '/deep-time',
         label: 'Deep Time',
         icon: Timer,
-        description: 'Explore how AI architectures handle time and memory.'
+        description: 'Explore how AI architectures handle time and memory.',
+        component: DeepTime
+    },
+    {
+        path: '/depth-mirror',
+        label: 'Depth Mirror',
+        icon: ImageIcon,
+        description: 'Estimate and visualize depth cues in images.',
+        component: DepthMirror
     },
     {
         path: '/detail-extractor',
         label: 'Detail Extractor',
         icon: Search,
-        description: 'Analyze and extract fine-grained details from images.'
+        description: 'Analyze and extract fine-grained details from images.',
+        component: DetailExtractor
     },
     {
         path: '/discontinuity-detector',
         label: 'Discontinuity Detector',
         icon: Clock,
-        description: 'Detect temporal and spatial discontinuities.'
+        description: 'Detect temporal and spatial discontinuities.',
+        component: DiscontinuityDetector
     },
     {
         path: '/glitch-detector',
         label: 'Glitch Detector',
         icon: AlertTriangle,
-        description: 'Identify and analyze system glitches.'
+        description: 'Identify and analyze system glitches.',
+        component: GlitchDetector
     },
     {
         path: '/imagination-inspector',
         label: 'Imagination Inspector',
         icon: Sparkles,
-        description: 'Probe the boundaries of generative imagination.'
+        description: 'Probe the boundaries of generative imagination.',
+        component: ImaginationInspector
     },
     {
         path: '/latent-navigator',
         label: 'Latent Space Navigator',
         icon: Layers,
-        description: 'Navigate through the latent space of the model.'
+        description: 'Navigate through the latent space of the model.',
+        component: LatentSpaceNavigator
     },
     {
         path: '/networked-narratives',
         label: 'Networked Narratives',
         icon: FileText,
-        description: 'Explore narrative structures in networked data.'
+        description: 'Explore narrative structures in networked data.',
+        component: NetworkedNarratives
     },
     {
         path: '/noise-predictor',
         label: 'Noise Predictor',
         icon: ImageIcon,
-        description: 'Predict and visualize noise patterns.'
+        description: 'Predict and visualize noise patterns.',
+        component: NoisePredictor
     },
     {
         path: '/threshold-adjuster',
         label: 'Threshold Adjuster',
         icon: Sliders,
-        description: 'Fine-tune detection thresholds.'
+        description: 'Fine-tune detection thresholds.',
+        component: ThresholdAdjuster
     },
     {
         path: '/semantic-oracle',
         label: 'Semantic Oracle',
         icon: BrainCircuit,
-        description: 'Consult the local intelligence for definitions and ideas.'
+        description: 'Consult the local intelligence for definitions and ideas.',
+        component: SemanticOracle
     },
     {
         path: '/visual-storyteller',
         label: 'Visual Storyteller',
         icon: FileText,
-        description: 'Generate AI captions from images.'
+        description: 'Generate AI captions from images.',
+        component: VisualStoryteller
     },
 ];

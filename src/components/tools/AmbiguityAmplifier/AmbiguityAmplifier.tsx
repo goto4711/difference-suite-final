@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { modelManager } from './components/ModelManager';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import * as tf from '@tensorflow/tfjs';
 import { Zap, Info, AlertTriangle, Activity, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';

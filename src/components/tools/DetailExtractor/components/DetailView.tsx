@@ -2,14 +2,24 @@ import React, { useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { transformersClient } from '../../../../core/inference/TransformersClient';
 
+interface DetailItem {
+    content?: string | File;
+}
+
+interface DetailEntity {
+    entity_group: string;
+    word: string;
+    score: number;
+}
+
 interface DetailViewProps {
-    item: any;
+    item: DetailItem | null;
     normDistance: number;
 }
 
 const DetailView: React.FC<DetailViewProps> = ({ item, normDistance }) => {
     const [isExtracting, setIsExtracting] = useState(false);
-    const [entities, setEntities] = useState<any[]>([]);
+    const [entities, setEntities] = useState<DetailEntity[]>([]);
 
     if (!item) {
         return (
@@ -19,12 +29,14 @@ const DetailView: React.FC<DetailViewProps> = ({ item, normDistance }) => {
         );
     }
 
+    const itemContent = typeof item.content === 'string' ? item.content : '';
+
     const handleExtract = async () => {
         setIsExtracting(true);
         try {
             const labels = ["Person", "Location", "Organization", "Date", "Event"];
             const extractionPrompt = `Extract entities from the following text and categorize them as: ${labels.join(', ')}.
-Text: "${item.content}"
+Text: "${itemContent}"
 
 Output each entity on a new line in the format: "Category: EntityName". Do not include any other text.`;
 
@@ -53,7 +65,7 @@ Output each entity on a new line in the format: "Category: EntityName". Do not i
                     }
                     return null;
                 })
-                .filter(e => e !== null);
+                .filter((entity): entity is DetailEntity => entity !== null);
 
             setEntities(extracted);
         } catch (error) {
@@ -74,7 +86,7 @@ Output each entity on a new line in the format: "Category: EntityName". Do not i
             <div className="bg-[var(--color-alt)] p-6 border-2 border-[var(--color-main)] shadow-[8px_8px_0px_rgba(0,0,0,0.1)]">
                 <h2 className="text-xl font-bold text-[var(--color-main)] mb-2 uppercase">The Detail</h2>
                 <div className="text-lg font-serif leading-relaxed bg-white/50 p-4 border border-[var(--color-main)] mb-4">
-                    "{item.content}"
+                    "{itemContent}"
                 </div>
 
                 <div className="flex items-center justify-between mb-2">

@@ -1,17 +1,28 @@
 import { useState } from 'react';
-import { Sparkles, AlertTriangle, User, Split, Maximize, Search, Database } from 'lucide-react';
+import { Sparkles, User, Split, Maximize, Database } from 'lucide-react';
 import PromptInput from './components/PromptInput';
 import GenerationGrid from './components/GenerationGrid';
 import AbsenceReport from './components/AbsenceReport';
-import { generateImages, type GenerateOptions } from './utils/GeneratorEngine';
+import { generateImages, type GenerateOptions, type GeneratedResult } from './utils/GeneratorEngine';
 import { analyzeBias } from './utils/BiasAnalyzer';
 import ToolLayout from '../../shared/ToolLayout';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { alignDatasetToPrompt } from './utils/DatasetAligner';
 import type { AlignmentResult } from './utils/DatasetAligner';
 import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
+import type { DataItem } from '@difference-suite/shared/types';
 
-const INTERNAL_ARCHETYPES = [
+interface BiasCategoryReport {
+    present: Array<{ tag: string; count: number; percentage: number }>;
+    absent: string[];
+}
+
+interface BiasReport {
+    totalImages: number;
+    categories: Record<string, BiasCategoryReport>;
+}
+
+const INTERNAL_ARCHETYPES: DataItem[] = [
     { id: 'arc-ceo', name: 'CEO', content: `${window.location.origin}/images/ceo_archetype.png`, type: 'image' },
     { id: 'arc-nurse', name: 'Nurse', content: `${window.location.origin}/images/nurse_archetype.png`, type: 'image' },
     { id: 'arc-criminal', name: 'Criminal', content: `${window.location.origin}/images/criminal_archetype.png`, type: 'image' },
@@ -75,14 +86,14 @@ const ImaginationInspector = () => {
 
     // Side A (Default)
     const [promptA, setPromptA] = useState('');
-    const [resultsA, setResultsA] = useState<any[]>([]);
-    const [reportA, setReportA] = useState<any>(null);
+    const [resultsA, setResultsA] = useState<GeneratedResult[]>([]);
+    const [reportA, setReportA] = useState<BiasReport | null>(null);
     const [alignmentsA, setAlignmentsA] = useState<AlignmentResult[]>([]);
 
     // Side B (Comparison)
     const [promptB, setPromptB] = useState('');
-    const [resultsB, setResultsB] = useState<any[]>([]);
-    const [reportB, setReportB] = useState<any>(null);
+    const [resultsB, setResultsB] = useState<GeneratedResult[]>([]);
+    const [reportB, setReportB] = useState<BiasReport | null>(null);
     const [alignmentsB, setAlignmentsB] = useState<AlignmentResult[]>([]);
 
     const [loading, setLoading] = useState(false);
@@ -103,8 +114,8 @@ const ImaginationInspector = () => {
             if (promptA.trim()) {
                 const genA = await generateImages(promptA, opts);
                 setResultsA(genA);
-                setReportA(analyzeBias(genA));
-                const searchSpaceA = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
+                setReportA(analyzeBias(genA) as BiasReport | null);
+                const searchSpaceA: DataItem[] = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
                 const aliA = await alignDatasetToPrompt(promptA, searchSpaceA);
                 setAlignmentsA(aliA.slice(0, 3));
             }
@@ -112,8 +123,8 @@ const ImaginationInspector = () => {
             if (mode === 'compare' && promptB.trim()) {
                 const genB = await generateImages(promptB, opts);
                 setResultsB(genB);
-                setReportB(analyzeBias(genB));
-                const searchSpaceB = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
+                setReportB(analyzeBias(genB) as BiasReport | null);
+                const searchSpaceB: DataItem[] = dataset.length > 0 ? dataset : INTERNAL_ARCHETYPES;
                 const aliB = await alignDatasetToPrompt(promptB, searchSpaceB);
                 setAlignmentsB(aliB.slice(0, 3));
             }
@@ -132,7 +143,7 @@ const ImaginationInspector = () => {
         }
     };
 
-    const renderPanel = (label: string, results: any[], loading: boolean, prompt: string) => (
+    const renderPanel = (label: string, results: GeneratedResult[], loading: boolean, prompt: string) => (
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--color-main)] opacity-10"></div>
             {label && <div className="p-2 text-center text-xs font-bold uppercase tracking-widest text-[var(--color-main)] opacity-50 border-b border-gray-100">{label}</div>}
@@ -313,12 +324,14 @@ const ImaginationInspector = () => {
                 )}
             </div>
 
-            <AudioRecorderModal
-                isOpen={isMicOpen}
-                onClose={() => setIsMicOpen(false)}
-                onCapture={() => { }} // We don't need the file, we use onTranscribeCapture
-                onTranscribeCapture={(text) => handleVoiceCapture(text)}
-            />
+            {isMicOpen && (
+                <AudioRecorderModal
+                    isOpen={isMicOpen}
+                    onClose={() => setIsMicOpen(false)}
+                    onCapture={() => { }} // We don't need the file, we use onTranscribeCapture
+                    onTranscribeCapture={(text) => handleVoiceCapture(text)}
+                />
+            )}
         </div>
     );
 

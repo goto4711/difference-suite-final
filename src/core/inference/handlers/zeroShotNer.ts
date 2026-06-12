@@ -1,9 +1,9 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type { CallablePipeline, InferenceRequest, InferenceResult, InferenceProgress } from '../types';
 
 registerHandler({
   task: 'zero-shot-ner',
-  async run(request: InferenceRequest, pipeline: any, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
+  async run(request: InferenceRequest, pipeline: CallablePipeline, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
     const { text, labels } = request.payload as {
       text: string;
       labels: string[];

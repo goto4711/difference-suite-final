@@ -1,12 +1,32 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Share2, FileText, Search, Network, X, Image } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Share2, FileText, Network, X, Image } from 'lucide-react';
 import { NLPProcessor } from './components/NLPProcessor';
 import { GraphViz } from './components/GraphViz';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
+import { debug } from '../../../utils/log';
 
 const DEFAULT_TEXT = "During World War II, the French Resistance played a critical role against the Nazi occupation. Jean Moulin was sent by Charles de Gaulle from London to unite the various movements. In Lyon, Moulin organized the secret army to fight the Gestapo. The Allies coordinated with the Resistance before the invasion of Normandy. General Eisenhower later praised the efforts of the French forces in liberating Paris.";
+
+type NarrativeNode = {
+    id: string | number;
+    name: string;
+    type: string;
+    val?: number;
+    img?: string;
+};
+
+type NarrativeLink = {
+    source: string | number;
+    target: string | number;
+    color?: string;
+};
+
+type NarrativeGraphData = {
+    nodes: NarrativeNode[];
+    links: NarrativeLink[];
+};
 
 const NetworkedNarratives = () => {
     const { dataset, activeItem } = useSuiteStore();
@@ -15,10 +35,9 @@ const NetworkedNarratives = () => {
     const imageItems = useMemo(() => dataset.filter(i => i.type === 'image'), [dataset]);
 
     const [text, setText] = useState(DEFAULT_TEXT);
-    const [graphData, setGraphData] = useState<any>({ nodes: [], links: [] });
-    const [selectedNode, setSelectedNode] = useState<any>(null);
+    const [graphData, setGraphData] = useState<NarrativeGraphData>({ nodes: [], links: [] });
+    const [selectedNode, setSelectedNode] = useState<NarrativeNode | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [progressStatus, setProgressStatus] = useState('');
     const [enableVisualSynapse, setEnableVisualSynapse] = useState(false);
 
@@ -31,20 +50,18 @@ const NetworkedNarratives = () => {
         }
     }, [selectedItem]);
 
-    const handleAnalyze = async () => {
+    const handleAnalyze = useCallback(async () => {
         setIsAnalyzing(true);
-        setProgress(0.1);
         setProgressStatus('Extracting entities...');
 
         try {
             // 1. Text NLP Extraction
-            const data = processor.process(text);
-            setProgress(0.4);
+            const data = processor.process(text) as NarrativeGraphData;
 
             // 2. Multimodal Injection (Visual Synapse) - OPTIONAL
             if (enableVisualSynapse && imageItems.length > 0 && data.nodes.length > 0) {
                 setProgressStatus('Initializing CLIP synapse...');
-                console.log('Starting Visual Synapse injection...');
+                debug('Starting Visual Synapse injection...');
                 const imageUrls = imageItems.map(i => i.content as string);
 
                 // Track used images to prevent duplicates
@@ -70,13 +87,13 @@ const NetworkedNarratives = () => {
                                     candidateType: 'image' 
                                 }
                             },
-                            (p) => setProgressStatus(`Matching: ${entity.name}...`)
+                            () => setProgressStatus(`Matching: ${entity.name}...`)
                         );
 
                         const matches = result.output as { url: string; score: number }[];
 
                         if (matches.length > 0) {
-                            console.log(`Matching '${entity.name}'... Best: ${matches[0].score}`);
+                            debug(`Matching '${entity.name}'... Best: ${matches[0].score}`);
                         }
 
                         // Find best match that hasn't been used yet (RAISED THRESHOLD to 0.25)
@@ -87,7 +104,7 @@ const NetworkedNarratives = () => {
 
                             // Add Image Node
                             const imageNodeId = `img_${entity.id}`;
-                            const imageNode = {
+                            const imageNode: NarrativeNode = {
                                 id: imageNodeId,
                                 name: "Visual Match",
                                 type: 'image',
@@ -106,7 +123,6 @@ const NetworkedNarratives = () => {
                         console.warn('Visual Synapse failed for entity', entity.name, e);
                     }
 
-                    setProgress(0.4 + ((i / entities.length) * 0.6));
                 }
             }
 
@@ -117,25 +133,24 @@ const NetworkedNarratives = () => {
             console.error(e);
         } finally {
             setIsAnalyzing(false);
-            setProgress(0);
         }
-    };
+    }, [enableVisualSynapse, imageItems, processor, text]);
 
     // Initial analysis
     useEffect(() => {
-        handleAnalyze();
-    }, [text]);
+        void handleAnalyze();
+    }, [handleAnalyze]);
 
     const renderHighlightedText = () => {
         if (!graphData.nodes.length) return text;
 
-        const entityMap = new Map();
-        graphData.nodes.forEach((node: any) => {
+        const entityMap = new Map<string, string>();
+        graphData.nodes.forEach((node: NarrativeNode) => {
             entityMap.set(node.name.toLowerCase(), node.type);
         });
 
         const escapedNames = graphData.nodes
-            .map((n: any) => n.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .map((node: NarrativeNode) => node.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
             .sort((a: string, b: string) => b.length - a.length);
 
         if (escapedNames.length === 0) return text;

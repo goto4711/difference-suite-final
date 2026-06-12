@@ -1,5 +1,12 @@
 import { transformersManager } from '../core/inference/TransformersManager';
-import type { InferenceRequest, InferenceProgress } from '../core/inference/types';
+import type {
+  InferenceProgress,
+  InferenceRequest,
+  WorkerMessage,
+  WorkerRequestMessage,
+  WorkerStatusRequestMessage,
+  WorkerClearCacheRequestMessage,
+} from '../core/inference/types';
 
 /**
  * Transformers Web Worker.
@@ -7,38 +14,67 @@ import type { InferenceRequest, InferenceProgress } from '../core/inference/type
  * Runs all ML inference off the main thread to keep the UI responsive.
  * Effectively a thin wrapper around TransformersManager.
  */
+function isStatusRequestMessage(data: WorkerRequestMessage): data is WorkerStatusRequestMessage {
+  return 'type' in data && data.type === 'get-status';
+}
 
-self.addEventListener('message', async (event) => {
+function isClearCacheRequestMessage(data: WorkerRequestMessage): data is WorkerClearCacheRequestMessage {
+  return 'type' in data && data.type === 'clear-cache';
+}
+
+self.addEventListener('message', async (event: MessageEvent<WorkerRequestMessage>) => {
   const data = event.data;
-  
-  if (data.type === 'get-status') {
-    self.postMessage({ type: 'status', data: { id: data.id, status: transformersManager.getStatus() } });
+
+  if (isStatusRequestMessage(data)) {
+    const statusMessage: WorkerMessage = {
+      type: 'status',
+      data: { id: data.id, status: await transformersManager.getStatus() },
+    };
+    self.postMessage(statusMessage);
     return;
   }
 
-  const request = data as InferenceRequest;
-  
+  if (isClearCacheRequestMessage(data)) {
+    try {
+      const result = await transformersManager.clearModelCache(data.modelId);
+      const resultMessage: WorkerMessage = { type: 'result', data: { id: data.id, output: result } };
+      self.postMessage(resultMessage);
+    } catch (err: unknown) {
+      const errorMessage: WorkerMessage = {
+        type: 'error',
+        data: { id: data.id, error: err instanceof Error ? err.message : 'Clear cache failed' },
+      };
+      self.postMessage(errorMessage);
+    }
+    return;
+  }
+
+  const request: InferenceRequest = data;
+
   if (!request || !request.id) return;
 
   try {
     // 1. Progress handler
     const onProgress = (p: InferenceProgress) => {
-      self.postMessage({ type: 'progress', data: p });
+      const progressMessage: WorkerMessage = { type: 'progress', data: p };
+      self.postMessage(progressMessage);
     };
 
     // 2. Run inference
     const result = await transformersManager.run(request, onProgress);
 
     // 3. Return success
-    self.postMessage({ type: 'result', data: result });
-  } catch (err: any) {
+    const resultMessage: WorkerMessage = { type: 'result', data: result };
+    self.postMessage(resultMessage);
+  } catch (err: unknown) {
     // 4. Return error
-    self.postMessage({
+    const errorMessage: WorkerMessage = {
       type: 'error',
       data: {
         id: request.id,
-        error: err.message || 'Unknown inference error',
+        error: err instanceof Error ? err.message : 'Unknown inference error',
       },
-    });
+    };
+    self.postMessage(errorMessage);
   }
 });

@@ -1,5 +1,20 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type { CallablePipeline, InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+
+export function parseTextGenerationOutput(result: unknown): string {
+  const output = Array.isArray(result) ? result[0] : result;
+
+  if (
+    typeof output === 'object' &&
+    output !== null &&
+    'generated_text' in output &&
+    typeof output.generated_text === 'string'
+  ) {
+    return output.generated_text;
+  }
+
+  throw new Error('Text generation returned an unexpected format');
+}
 
 /**
  * Handler for text-generation models (e.g. SmolLM2-135M-Instruct).
@@ -9,7 +24,7 @@ registerHandler({
 
   async run(
     request: InferenceRequest,
-    pipeline: unknown,
+    pipeline: CallablePipeline,
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult> {
     const { prompt, options } = request.payload as {
@@ -24,12 +39,7 @@ registerHandler({
       message: 'Generating text…',
     });
 
-    const pipe = pipeline as (
-      text: string,
-      opts?: Record<string, unknown>,
-    ) => Promise<unknown>;
-
-    const result = await pipe(prompt, {
+    const result = await pipeline(prompt, {
       max_new_tokens: 128,
       temperature: 0.7,
       do_sample: true,
@@ -38,12 +48,7 @@ registerHandler({
     });
 
     // Pipeline returns [{ generated_text: "..." }] or { generated_text: "..." }
-    let text: string;
-    if (Array.isArray(result)) {
-      text = (result[0] as { generated_text: string }).generated_text;
-    } else {
-      text = (result as { generated_text: string }).generated_text;
-    }
+    const text = parseTextGenerationOutput(result);
 
     onProgress?.({
       id: request.id,

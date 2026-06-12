@@ -3,8 +3,19 @@ import { RefreshCw, Info, Layers, Database, CheckSquare, Square } from 'lucide-r
 import ClusterViz from './components/ClusterViz';
 import DetailView from './components/DetailView';
 import { processTextData, loadModels } from './utils/DataProcessor';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
+
+interface DetailPoint {
+    id: number;
+    content: string;
+    type: 'text';
+    embedding: number[];
+    cluster: number;
+    distance: number;
+    x: number;
+    y: number;
+}
 
 const DEMO_TEXTS = [
     "The Jewish Council in Warsaw attempted to organize underground education despite the ban.",
@@ -23,10 +34,9 @@ const DEMO_TEXTS = [
 
 const DetailExtractor = () => {
     const { dataset, collections } = useSuiteStore();
-    const textItems = dataset.filter(item => item.type === 'text');
 
-    const [data, setData] = useState<any[]>([]);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [data, setData] = useState<DetailPoint[]>([]);
+    const [selectedItem, setSelectedItem] = useState<DetailPoint | null>(null);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState("Ready");
     const [useDataset, setUseDataset] = useState(false);
@@ -49,7 +59,7 @@ const DetailExtractor = () => {
         try {
             await loadModels();
             setStatus("Processing Embeddings...");
-            const { data: processed } = await processTextData(texts);
+            const { data: processed } = await processTextData(texts) as { data: DetailPoint[] };
             setData(processed);
             setStatus("Ready");
         } catch (error) {

@@ -1,16 +1,36 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type {
+  CallablePipeline,
+  InferenceRequest,
+  InferenceResult,
+  InferenceProgress,
+  TensorLike,
+} from '../types';
+
+type AttentionModel = ((
+  input: Record<string, unknown>,
+) => Promise<{
+  attentions?: TensorLike<unknown>[];
+  last_hidden_state?: TensorLike<number> & { dims?: number[] };
+}>) & Record<string, unknown>;
 
 /**
- * Handler for text attention analysis (Attention Lens).
- * Extracts self-attention weights from transformer layers to visualize model focus.
+ * Handler for text attention analysis (Attention Lens / DeepVectorMirror).
+ *
+ * Strategy:
+ *  1. Call BERT with output_attentions: true. Standard ONNX exports don't include
+ *     attention output nodes, so this usually returns nothing.
+ *  2. If attentions are present → use averaged real attention weights.
+ *  3. If not → fall back to token-embedding cosine similarity from last_hidden_state.
+ *     This is real BERT output: semantically related tokens get higher similarity.
+ *  4. If the model returned no usable output → diagonal simulation (last resort).
  */
 registerHandler({
   task: 'attention-analysis',
 
   async run(
     request: InferenceRequest,
-    pipeline: any,
+    pipeline: CallablePipeline,
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult> {
     const { text } = request.payload as { text: string };
@@ -23,36 +43,47 @@ registerHandler({
     });
 
     const tokenizer = pipeline.tokenizer;
-    const model = pipeline.model;
+    const model = pipeline.model as AttentionModel | undefined;
 
-    // 1. Tokenize
-    const inputs = await tokenizer(text, { return_tensors: 'pt' });
-    const tokens = inputs.input_ids.data;
-    const decodedTokens = Array.from(tokens).map((t: any) => tokenizer.decode([t]));
+    if (!tokenizer || !model) {
+      throw new Error('Attention analysis requires a tokenizer and model');
+    }
 
-    // 2. Run model with attention outputs
-    // Note: We need to ensure the model was loaded with attention support if possible,
-    // but usually calling it with output_attentions: true works if the model supports it.
-    const outputs = await model({
-      ...inputs,
-      output_attentions: true,
+    // 1. Tokenize — truncate hard. Without this, a long corpus document produces
+    // thousands of tokens; the seqLen² attention matrix then explodes memory in
+    // this worker AND the UI render loop (O(n²) per token span) freezes the tab.
+    const MAX_TOKENS = 128;
+    const inputs = await tokenizer(text, {
+      return_tensors: 'pt',
+      truncation: true,
+      max_length: MAX_TOKENS,
     });
-
-    const attention = outputs.attentions as any[];
-    let averagedAttention: number[] | null = null;
-    const seqLen = tokens.length;
+    if (!inputs.input_ids) {
+      throw new Error('Attention analysis tokenizer returned no input ids');
+    }
+    const tokens = inputs.input_ids.data;
+    const decodedTokens = Array.from(tokens).map((token) => tokenizer.decode([Number(token)]));
+    const seqLen = decodedTokens.length;
     const matrixSize = seqLen * seqLen;
 
-    if (attention && attention.length > 0) {
-      // Use the last layer's attention
-      const lastLayer = attention[attention.length - 1];
+    // 2. Run model — request attention outputs (only works if model was exported with them)
+    const outputs = await model({ ...inputs, output_attentions: true });
+
+    let averagedAttention: number[];
+    let isSimulated = false;
+
+    const attentionLayers = Array.isArray(outputs.attentions) ? outputs.attentions : [];
+
+    if (attentionLayers.length > 0) {
+      // Real attention weights from the ONNX graph
+      const lastLayer = attentionLayers[attentionLayers.length - 1];
       const data = lastLayer.data as Float32Array;
-      const dims = lastLayer.dims; // [batch, heads, seq, seq]
+      const dims = lastLayer.dims;
+      if (!dims || dims.length < 2) {
+        throw new Error('Attention tensor is missing dimensions');
+      }
       const heads = dims[1];
-
       averagedAttention = new Array(matrixSize).fill(0);
-
-      // Average across all heads
       for (let h = 0; h < heads; h++) {
         const headOffset = h * matrixSize;
         if (data.length >= headOffset + matrixSize) {
@@ -61,13 +92,53 @@ registerHandler({
           }
         }
       }
-
       for (let i = 0; i < matrixSize; i++) {
         averagedAttention[i] /= heads;
       }
+    } else if (outputs.last_hidden_state?.data && outputs.last_hidden_state.dims && outputs.last_hidden_state.dims.length >= 3) {
+      // Cosine similarity between BERT token embeddings — real model output, no simulation needed.
+      // ONNX exports don't include attention nodes, but last_hidden_state is always present.
+      // Cosine similarity captures contextual token relationships from the model's representation.
+      const hiddenData = outputs.last_hidden_state.data as ArrayLike<number>;
+      const dims = outputs.last_hidden_state.dims;
+      const hiddenSize = dims[2];
+
+      // Pre-compute L2 norms
+      const norms = new Float32Array(seqLen);
+      for (let i = 0; i < seqLen; i++) {
+        let norm = 0;
+        for (let k = 0; k < hiddenSize; k++) {
+          const v = hiddenData[i * hiddenSize + k] as number;
+          norm += v * v;
+        }
+        norms[i] = Math.sqrt(norm) || 1;
+      }
+
+      // Cosine similarity matrix
+      const raw = new Float32Array(matrixSize);
+      let minVal = Infinity, maxVal = -Infinity;
+      for (let i = 0; i < seqLen; i++) {
+        for (let j = 0; j < seqLen; j++) {
+          let dot = 0;
+          for (let k = 0; k < hiddenSize; k++) {
+            dot += (hiddenData[i * hiddenSize + k] as number) * (hiddenData[j * hiddenSize + k] as number);
+          }
+          const sim = dot / (norms[i] * norms[j]);
+          raw[i * seqLen + j] = sim;
+          if (sim < minVal) minVal = sim;
+          if (sim > maxVal) maxVal = sim;
+        }
+      }
+
+      // Normalize to [0, 1] so the display weight scaling works the same as real attention
+      const range = maxVal - minVal || 1;
+      averagedAttention = new Array(matrixSize);
+      for (let i = 0; i < matrixSize; i++) {
+        averagedAttention[i] = (raw[i] - minVal) / range;
+      }
     } else {
-      console.warn('[AttentionHandler] No attention weights returned. Falling back to simulation.');
-      // Simple diagonal-focused simulation for visualization if the model doesn't export attentions
+      // No model output at all — pure simulation as last resort
+      isSimulated = true;
       averagedAttention = new Array(matrixSize).fill(0);
       for (let i = 0; i < seqLen; i++) {
         for (let j = 0; j < seqLen; j++) {
@@ -90,7 +161,7 @@ registerHandler({
       output: {
         tokens: decodedTokens,
         attention: averagedAttention,
-        isSimulated: !attention || attention.length === 0,
+        isSimulated,
       },
     };
   },

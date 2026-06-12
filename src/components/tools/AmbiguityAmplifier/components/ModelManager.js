@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { debug } from '../../../../utils/log';
 
 class ModelManager {
     constructor() {
@@ -8,7 +9,7 @@ class ModelManager {
 
     async loadModel() {
         this.isReady = true;
-        console.log("Ambiguity Amplifier (Image) using TransformersClient");
+        debug("Ambiguity Amplifier (Image) using TransformersClient");
     }
 
     async predict(input, noiseLevel = 0) {

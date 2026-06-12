@@ -1,6 +1,7 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
 import * as tf from '@tensorflow/tfjs';
 import * as knnClassifier from '@tensorflow-models/knn-classifier';
+import { debug } from '../../../../utils/log';
 
 class TextModelManager {
     constructor() {
@@ -12,11 +13,11 @@ class TextModelManager {
         if (this.isReady) return;
         this.classifier = knnClassifier.create();
         this.isReady = true;
-        console.log("KNN Classifier initialized for Ambiguity Amplifier Text (TransformersClient backend)");
+        debug("KNN Classifier initialized for Ambiguity Amplifier Text (TransformersClient backend)");
     }
 
     async addExample(text, label) {
-        console.log('[TextModelManager] addExample (TransformersClient):', { text: text?.substring(0, 50), label });
+        debug('[TextModelManager] addExample (TransformersClient):', { text: text?.substring(0, 50), label });
         if (!this.isReady || !this.classifier) {
             await this.loadModel();
         }
@@ -32,7 +33,7 @@ class TextModelManager {
         const tensor = tf.tensor2d([embeddingArray]);
         this.classifier.addExample(tensor, label);
 
-        console.log('[TextModelManager] Example added. Current counts:', this.classifier.getClassExampleCount());
+        debug('[TextModelManager] Example added. Current counts:', this.classifier.getClassExampleCount());
         tensor.dispose();
     }
 

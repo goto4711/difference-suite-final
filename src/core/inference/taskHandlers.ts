@@ -1,4 +1,5 @@
 import type {
+  CallablePipeline,
   InferenceRequest,
   InferenceResult,
   InferenceProgress,
@@ -28,7 +29,7 @@ export interface TaskHandler {
    */
   run(
     request: InferenceRequest,
-    pipeline: unknown,
+    pipeline: CallablePipeline,
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult>;
 }

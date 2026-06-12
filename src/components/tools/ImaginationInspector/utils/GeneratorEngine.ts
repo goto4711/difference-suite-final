@@ -10,6 +10,41 @@ export interface GeneratedResult {
     color: string;
 }
 
+interface StableBiasRow {
+    row?: {
+        image?: {
+            src?: string;
+        };
+        adjective?: string;
+    };
+}
+
+interface StableBiasResponse {
+    rows?: StableBiasRow[];
+}
+
+type StableBiasImageRow = StableBiasRow & {
+    row: {
+        image: {
+            src: string;
+        };
+        adjective?: string;
+    };
+};
+
+const isStableBiasImageRow = (row: StableBiasRow | undefined): row is StableBiasImageRow =>
+    typeof row?.row?.image?.src === 'string';
+
+const fetchStableBiasRows = async (url: string): Promise<StableBiasRow[]> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        return [];
+    }
+
+    const data = await response.json() as StableBiasResponse;
+    return data.rows ?? [];
+};
+
 // Full profession list from the stable-bias/professions dataset (stable-bias/professions, CC BY-SA 4.0)
 // Note: dataset stores 'CEO' in uppercase; all others are lowercase with underscores.
 const STABLE_BIAS_PROFESSIONS = [
@@ -116,7 +151,7 @@ async function classifyDemographicsWithCLIP(imageUrl: string): Promise<Record<st
         const scoreMap = new Map(scores.map(s => [s.url, s.score]));
 
         const tags: Record<string, string> = {};
-        for (const [cat, { labels, template }] of Object.entries(DEMOGRAPHIC_CATEGORIES)) {
+        for (const [cat, { labels }] of Object.entries(DEMOGRAPHIC_CATEGORIES)) {
             const [start, end] = categoryRanges[cat];
             const catPrompts = allPrompts.slice(start, end);
             let bestLabel = labels[0];
@@ -251,7 +286,7 @@ export const generateImages = async (prompt: string, opts: GenerateOptions = {})
             'unreasonable',
         ];
 
-        let selectedRows: any[];
+        let selectedRows: StableBiasImageRow[];
 
         if (fixedAdjective) {
             // Fixed adjective mode: calculate exact block offset by adjective index.
@@ -262,19 +297,17 @@ export const generateImages = async (prompt: string, opts: GenerateOptions = {})
             const modelCycles = [0, 21, 42].slice(0, count);
             const responses = await Promise.all(
                 modelCycles.map(cycle =>
-                    fetch(`https://datasets-server.huggingface.co/rows?dataset=stable-bias/professions&config=default&split=train&where=${where}&offset=${(adjIdx + cycle) * BLOCK + withinBlockOffset}&length=3`)
-                        .then(r => r.ok ? r.json() : { rows: [] })
+                    fetchStableBiasRows(`https://datasets-server.huggingface.co/rows?dataset=stable-bias/professions&config=default&split=train&where=${where}&offset=${(adjIdx + cycle) * BLOCK + withinBlockOffset}&length=3`)
                 )
             );
             selectedRows = responses
-                .map(d => (d.rows ?? []).find((r: any) => r?.row?.image?.src && r?.row?.adjective === fixedAdjective))
-                .filter(Boolean);
+                .map(rows => rows.find((row): row is StableBiasImageRow => isStableBiasImageRow(row) && row.row.adjective === fixedAdjective))
+                .filter(isStableBiasImageRow);
             // If we need more images than model cycles, fill from the first cycle
             if (selectedRows.length < count) {
-                const extra = await fetch(
+                const extraRows = (await fetchStableBiasRows(
                     `https://datasets-server.huggingface.co/rows?dataset=stable-bias/professions&config=default&split=train&where=${where}&offset=${adjIdx * BLOCK + withinBlockOffset}&length=${count}`
-                ).then(r => r.ok ? r.json() : { rows: [] });
-                const extraRows = (extra.rows ?? []).filter((r: any) => r?.row?.image?.src && r?.row?.adjective === fixedAdjective);
+                )).filter((row): row is StableBiasImageRow => isStableBiasImageRow(row) && row.row.adjective === fixedAdjective);
                 selectedRows = [...selectedRows, ...extraRows].slice(0, count);
             }
         } else {
@@ -287,14 +320,13 @@ export const generateImages = async (prompt: string, opts: GenerateOptions = {})
 
             const responses = await Promise.all(
                 blockIndices.map(blockIdx =>
-                    fetch(`${base}&offset=${blockIdx * BLOCK + withinBlockOffset}`)
-                        .then(r => r.ok ? r.json() : { rows: [] })
+                    fetchStableBiasRows(`${base}&offset=${blockIdx * BLOCK + withinBlockOffset}`)
                 )
             );
 
             selectedRows = responses
-                .map(d => (d.rows ?? []).find((r: any) => r?.row?.image?.src))
-                .filter(Boolean);
+                .map(rows => rows.find(isStableBiasImageRow))
+                .filter(isStableBiasImageRow);
         }
 
         if (selectedRows.length === 0) {

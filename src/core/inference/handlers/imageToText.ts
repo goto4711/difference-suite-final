@@ -1,5 +1,5 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type { CallablePipeline, InferenceRequest, InferenceResult, InferenceProgress } from '../types';
 
 /**
  * Handler for image-to-text models (e.g. Florence-2).
@@ -9,11 +9,11 @@ registerHandler({
 
   async run(
     request: InferenceRequest,
-    pipeline: any,
+    pipeline: CallablePipeline,
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult> {
     const { imageSource, mode } = request.payload as {
-      imageSource: string;
+      imageSource: string | Blob;
       mode?: 'caption' | 'caption+ocr';
     };
 

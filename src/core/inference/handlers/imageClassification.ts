@@ -1,9 +1,9 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type { CallablePipeline, InferenceRequest, InferenceResult, InferenceProgress } from '../types';
 
 registerHandler({
   task: 'image-classification',
-  async run(request: InferenceRequest, pipeline: any, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
+  async run(request: InferenceRequest, pipeline: CallablePipeline, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
     const { image, topK = 5 } = request.payload as {
       image: string; // URL or Data URL
       topK?: number;

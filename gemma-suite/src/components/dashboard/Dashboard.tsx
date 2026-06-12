@@ -1,13 +1,17 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useSuiteStore } from '../../stores/suiteStore';
-import { CollectionSidebar } from './CollectionSidebar';
-import { DataGrid } from './DataGrid';
-import { ContextPanel } from './ContextPanel';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+import { CollectionSidebar } from '@difference-suite/shared/components/dashboard/CollectionSidebar';
+import { DataGrid } from '@difference-suite/shared/components/dashboard/DataGrid';
+import { ContextPanel } from '@difference-suite/shared/components/dashboard/ContextPanel';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FolderUp, Camera, Mic } from 'lucide-react';
-import type { DataItem } from '../../types';
-import { WebcamModal } from './modals/WebcamModal';
+import type { DataItem } from '@difference-suite/shared/types';
+import { WebcamModal } from '@difference-suite/shared/components/dashboard/modals/WebcamModal';
 import { AudioRecorderModal } from './modals/AudioRecorderModal';
+
+type DirectoryInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+    webkitdirectory?: string;
+};
 
 export const Dashboard: React.FC = () => {
     const { dataset, addItems, createCollection } = useSuiteStore();
@@ -52,7 +56,7 @@ export const Dashboard: React.FC = () => {
         const newItem: DataItem = {
             id: crypto.randomUUID(),
             name: file.name,
-            type: type as any,
+            type,
             content,
             rawFile: file,
             collectionId: activeCollectionId || undefined,
@@ -97,6 +101,10 @@ export const Dashboard: React.FC = () => {
         onDrop,
         noClick: true // Prevent click from opening file dialog
     });
+
+    const directoryInputProps: DirectoryInputProps = {
+        webkitdirectory: 'true',
+    };
 
     // Handle Folder Upload
     const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,9 +191,8 @@ export const Dashboard: React.FC = () => {
                                 <span>Upload Folder</span>
                             </button>
                             <input
+                                {...directoryInputProps}
                                 type="file"
-                                // @ts-ignore - webkitdirectory is standard but TS might complain
-                                webkitdirectory="true"
                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                 onChange={handleFolderSelect}
                             />
@@ -216,16 +223,20 @@ export const Dashboard: React.FC = () => {
             {/* Context Panel */}
             <ContextPanel />
 
-            <WebcamModal
-                isOpen={isWebcamOpen}
-                onClose={() => setIsWebcamOpen(false)}
-                onCapture={handleMediaCapture}
-            />
-            <AudioRecorderModal
-                isOpen={isMicOpen}
-                onClose={() => setIsMicOpen(false)}
-                onCapture={handleMediaCapture}
-            />
+            {isWebcamOpen && (
+                <WebcamModal
+                    isOpen={isWebcamOpen}
+                    onClose={() => setIsWebcamOpen(false)}
+                    onCapture={handleMediaCapture}
+                />
+            )}
+            {isMicOpen && (
+                <AudioRecorderModal
+                    isOpen={isMicOpen}
+                    onClose={() => setIsMicOpen(false)}
+                    onCapture={handleMediaCapture}
+                />
+            )}
         </div>
     );
 };

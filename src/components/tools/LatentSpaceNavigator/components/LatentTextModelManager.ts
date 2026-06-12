@@ -1,6 +1,15 @@
 import * as tf from '@tensorflow/tfjs';
 import { dictionary } from '../data/dictionary';
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { debug } from '../../../../utils/log';
+
+type EmbeddingVector = number[];
+type EmbeddingMatrix = number[][];
+
+export interface NearestWord {
+    word: string;
+    score: number;
+}
 
 class LatentTextModelManager {
     private dictionaryEmbeddings: tf.Tensor2D | null = null;
@@ -13,7 +22,7 @@ class LatentTextModelManager {
             return;
         }
 
-        console.log("Latent Space Navigator: Initializing Transformers.js worker...");
+        debug("Latent Space Navigator: Initializing Transformers.js worker...");
         if (onProgress) onProgress('Initializing', 0.1);
 
         // Pre-compute embeddings for dictionary using the new client
@@ -29,10 +38,10 @@ class LatentTextModelManager {
             }
         });
         
-        const embeddingsArray = result.output;
+        const embeddingsArray = result.output as EmbeddingMatrix;
 
         // Convert to TF.js Tensor for fast similarity search
-        const tensor = tf.tensor2d(embeddingsArray as any);
+        const tensor = tf.tensor2d(embeddingsArray);
         this.dictionaryEmbeddings = tensor;
         this.isInitialized = true;
 
@@ -41,7 +50,7 @@ class LatentTextModelManager {
         }
 
         const shapeInfo = tensor.shape.join('x');
-        console.log(`Latent Navigator: Dictionary embeddings computed (${shapeInfo})`);
+        debug(`Latent Navigator: Dictionary embeddings computed (${shapeInfo})`);
     }
 
     private async ensureInitialized() {
@@ -49,7 +58,7 @@ class LatentTextModelManager {
         await this.loadModel();
     }
 
-    async getNearest(vectorTensor: tf.Tensor2D) {
+    async getNearest(vectorTensor: tf.Tensor2D): Promise<NearestWord[] | null> {
         await this.ensureInitialized();
 
         if (!this.dictionaryEmbeddings) {
@@ -101,8 +110,8 @@ class LatentTextModelManager {
             payload: { text: textB }
         });
 
-        const embA = tf.tensor2d([resA.output as any]);
-        const embB = tf.tensor2d([resB.output as any]);
+        const embA = tf.tensor2d([resA.output as EmbeddingVector]);
+        const embB = tf.tensor2d([resB.output as EmbeddingVector]);
 
         const interpolated = tf.tidy(() => {
             // Linear Interpolation: A * (1-t) + B * t
@@ -136,8 +145,8 @@ class LatentTextModelManager {
             task: 'feature-extraction',
             payload: { texts: newWords }
         });
-        const newEmbeddingsArray = result.output;
-        const newEmbeddings = tf.tensor2d(newEmbeddingsArray as any);
+        const newEmbeddingsArray = result.output as EmbeddingMatrix;
+        const newEmbeddings = tf.tensor2d(newEmbeddingsArray);
 
         if (this.dictionaryEmbeddings) {
             const oldEmbeddings = this.dictionaryEmbeddings;
@@ -149,7 +158,7 @@ class LatentTextModelManager {
         }
 
         this.dictionaryWords = [...this.dictionaryWords, ...newWords];
-        console.log(`Latent Navigator: Dictionary size is now ${this.dictionaryWords.length}`);
+        debug(`Latent Navigator: Dictionary size is now ${this.dictionaryWords.length}`);
     }
 
     async getEmbedding(text: string) {
@@ -160,7 +169,7 @@ class LatentTextModelManager {
             task: 'feature-extraction',
             payload: { text }
         });
-        return tf.tensor2d([result.output as any]);
+        return tf.tensor2d([result.output as EmbeddingVector]);
     }
 }
 

@@ -16,6 +16,9 @@
     "allowJs": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
+    "paths": {
+      "@difference-suite/shared/*": ["./packages/shared/src/*"]
+    },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
@@ -31,5 +34,9 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ]
 }

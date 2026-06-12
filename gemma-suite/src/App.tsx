@@ -1,16 +1,21 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import MainLayout from './components/shared/MainLayout';
-import { AuthGuard } from './components/auth/AuthGuard';
+import MainLayout from '@difference-suite/shared/components/shared/MainLayout';
+import { Header as SharedHeader } from '@difference-suite/shared/components/shared/Header';
+import { AuthGuard } from '@difference-suite/shared/components/auth/AuthGuard';
 import { Dashboard } from './components/dashboard/Dashboard'; // we will mock dashboard for now
 import SemanticOraclePro from './components/tools/SemanticOraclePro/SemanticOraclePro';
 import SDShowcase from './components/tools/SDShowcase/SDShowcase';
 import VisualStorytellerPro from './components/tools/VisualStorytellerPro/VisualStorytellerPro';
 import ImaginationInspectorPro from './components/tools/ImaginationInspectorPro/ImaginationInspectorPro';
+import Sidebar from './components/shared/Sidebar';
+import { ModelStatusWidget } from './components/shared/ModelStatusWidget';
+
+const HeaderComponent = () => <SharedHeader StatusWidget={ModelStatusWidget} />;
 
 function App() {
   return (
     <Router>
-      <MainLayout>
+      <MainLayout HeaderComponent={HeaderComponent} SidebarComponent={Sidebar}>
         <AuthGuard>
           <Routes>
             <Route path="/" element={<Dashboard />} />

@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { modelManager } from '../AmbiguityAmplifier/components/ModelManager';
 import { latentTextManager } from './components/LatentTextModelManager';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import * as tf from '@tensorflow/tfjs';
-import { Info, Layers, Sparkles, Image as ImageIcon, Type, ArrowRight, BrainCircuit, Wand2, RefreshCw } from 'lucide-react';
+import { Layers, Sparkles, Image as ImageIcon, Type, ArrowRight, BrainCircuit, Wand2, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { extractSemanticKeywords } from '../ContextWeaver/utils/ContextProcessor';
+import { debug } from '../../../utils/log';
 
 type NavMode = 'image' | 'text';
+type ImagePrediction = { className: string; probability: number };
+type TextInterpolationResult = { word: string; score: number };
 
 // Abstract concepts that appear when the AI is confused
 const HIDDEN_CONCEPTS = [
@@ -16,7 +19,7 @@ const HIDDEN_CONCEPTS = [
 ];
 
 const LatentSpaceNavigator = () => {
-    const { dataset, activeItem, setActiveItem } = useSuiteStore();
+    const { dataset } = useSuiteStore();
     const [mode, setMode] = useState<NavMode>('image');
 
     // Image State
@@ -25,7 +28,7 @@ const LatentSpaceNavigator = () => {
     const [imageB, setImageB] = useState<tf.Tensor3D | null>(null);
     const [selectedIdA, setSelectedIdA] = useState<string | null>(null);
     const [selectedIdB, setSelectedIdB] = useState<string | null>(null);
-    const [imagePrediction, setImagePrediction] = useState<any[]>([]);
+    const [imagePrediction, setImagePrediction] = useState<ImagePrediction[]>([]);
     const [hiddenConcept, setHiddenConcept] = useState<string | null>(null);
     const [isLoadingA, setIsLoadingA] = useState(false);
     const [isLoadingB, setIsLoadingB] = useState(false);
@@ -34,7 +37,7 @@ const LatentSpaceNavigator = () => {
     const textItems = useMemo(() => dataset.filter(item => item.type === 'text'), [dataset]);
     const [conceptA, setConceptA] = useState('King');
     const [conceptB, setConceptB] = useState('Woman');
-    const [textResults, setTextResults] = useState<any[]>([]);
+    const [textResults, setTextResults] = useState<TextInterpolationResult[]>([]);
 
     // Shared State
     const [sliderValue, setSliderValue] = useState(0.5);
@@ -49,6 +52,9 @@ const LatentSpaceNavigator = () => {
     const [isSummarizing, setIsSummarizing] = useState(false);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    // Refs mirror state tensors so unmount cleanup can dispose without depending on closure capture
+    const imageARef = useRef<tf.Tensor3D | null>(null);
+    const imageBRef = useRef<tf.Tensor3D | null>(null);
 
     // Initial load and Dictionary Extension
     useEffect(() => {
@@ -77,12 +83,15 @@ const LatentSpaceNavigator = () => {
             }
         }
         init();
+    }, []);
 
-        // Cleanup tensors on unmount
+    // Unmount-only cleanup via refs — avoids React Strict Mode double-disposal
+    // that happens when useEffect([imageA, imageB]) runs its cleanup on every dependency change.
+    useEffect(() => {
         return () => {
-            if (imageA) imageA.dispose();
-            if (imageB) imageB.dispose();
-        }
+            imageARef.current?.dispose();
+            imageBRef.current?.dispose();
+        };
     }, []);
 
     // Effect to extend dictionary with keywords from text items
@@ -90,7 +99,7 @@ const LatentSpaceNavigator = () => {
         if (!isModelReady || textItems.length === 0) return;
 
         const extendDict = async () => {
-            console.log("Latent Navigator: Extracting keywords from dataset to extend latent space...");
+            debug("Latent Navigator: Extracting keywords from dataset to extend latent space...");
             const allKeywords = new Set<string>();
 
             // Optimize: Process in chunks to avoid blocking the main thread
@@ -101,7 +110,7 @@ const LatentSpaceNavigator = () => {
                     try {
                         const keywords = await extractSemanticKeywords(item.content as string, 20);
                         keywords.forEach((k: string) => allKeywords.add(k));
-                    } catch (e) {
+                    } catch {
                         console.warn("Skipping keyword extraction for item:", item.id);
                     }
                 }));
@@ -159,16 +168,17 @@ const LatentSpaceNavigator = () => {
             const tensor = tf.browser.fromPixels(img).resizeBilinear([224, 224]) as tf.Tensor3D;
 
             if (target === 'A') {
-                if (imageA) imageA.dispose();
+                imageARef.current?.dispose();
+                imageARef.current = tensor;
                 setImageA(tensor);
                 setIsLoadingA(false);
             } else {
-                if (imageB) imageB.dispose();
+                imageBRef.current?.dispose();
+                imageBRef.current = tensor;
                 setImageB(tensor);
                 setIsLoadingB(false);
             }
 
-            // Clear predictions when changing source images
             setImagePrediction([]);
             setHiddenConcept(null);
         };
@@ -195,7 +205,7 @@ const LatentSpaceNavigator = () => {
             await tf.browser.toPixels(resized, canvasRef.current!);
 
             // Predict
-            const results = await modelManager.predict(resized) as any;
+            const results = await modelManager.predict(resized) as ImagePrediction[] | null;
 
             if (results && Array.isArray(results) && results[0]) {
                 const topConf = results[0].probability;

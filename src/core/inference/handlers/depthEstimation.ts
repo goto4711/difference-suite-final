@@ -1,16 +1,25 @@
 import { registerHandler } from '../taskHandlers';
-import type { InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+import type { CallablePipeline, InferenceRequest, InferenceResult, InferenceProgress } from '../types';
+
+interface DepthEstimationOutput {
+  depth: {
+    width: number;
+    height: number;
+    channels: number;
+    data: Uint8Array;
+  };
+}
 
 registerHandler({
   task: 'depth-estimation',
-  async run(request: InferenceRequest, pipeline: any, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
+  async run(request: InferenceRequest, pipeline: CallablePipeline, onProgress?: (p: InferenceProgress) => void): Promise<InferenceResult> {
     const { image } = request.payload as {
-      image: string; // Data URL or Image URL
+      image: string | Blob;
     };
 
     onProgress?.({ id: request.id, stage: 'running', progress: 0.5, message: 'Estimating physical depth...' });
 
-    const result = await pipeline(image);
+    const result = await pipeline(image) as DepthEstimationOutput;
 
     // Transformers.js depth-estimation returns { depth: RawImage }
     // We send back the serializable raw pixel data to construct an ImageData on the main thread

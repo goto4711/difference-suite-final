@@ -3,7 +3,15 @@
 // This worker replaces the Stable Diffusion simulation with an actual generative engine 
 // that synthesizes unique, prompt-reactive visual data locally on the client.
 
-self.onmessage = async (e: MessageEvent) => {
+interface WorkerRequest {
+    action: 'LOAD_MODEL' | 'GENERATE' | 'UNLOAD';
+    payload?: {
+        prompt?: string;
+    };
+    msgId: number;
+}
+
+self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { action, payload, msgId } = e.data;
     
     try {
@@ -22,7 +30,7 @@ self.onmessage = async (e: MessageEvent) => {
         }
 
         if (action === 'GENERATE') {
-            const prompt = payload.prompt || 'abstract';
+            const prompt = payload?.prompt || 'abstract';
             
             // Seed generation from prompt string
             let seed = 0;
@@ -107,11 +115,11 @@ self.onmessage = async (e: MessageEvent) => {
             return;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         self.postMessage({ 
             msgId, 
             status: 'error', 
-            error: error.message || 'Proc-Gen synthesis failed' 
+            error: error instanceof Error ? error.message : 'Proc-Gen synthesis failed' 
         });
     }
 };

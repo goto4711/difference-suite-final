@@ -5,11 +5,32 @@ if (env.backends?.onnx?.wasm) {
     env.backends.onnx.wasm.numThreads = 1;
 }
 
-let visionPipeline: any = null;
+type ProgressInfo = {
+    status?: string;
+    file?: string;
+    loaded?: number;
+    total?: number;
+    progress?: number;
+};
+
+interface WorkerRequest {
+    action: 'LOAD_MODEL' | 'GENERATE' | 'UNLOAD';
+    payload?: {
+        imageStr?: string;
+    };
+    msgId: number;
+}
+
+interface VisionPipeline {
+    (image: string): Promise<unknown>;
+    dispose?: () => Promise<void>;
+}
+
+let visionPipeline: VisionPipeline | null = null;
 
 const MODEL_ID = 'Xenova/vit-gpt2-image-captioning';
 
-self.onmessage = async (e: MessageEvent) => {
+self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { action, payload, msgId } = e.data;
     
     try {
@@ -22,17 +43,17 @@ self.onmessage = async (e: MessageEvent) => {
                     message: 'Initializing Vision Translator...'
                 });
                 
-                visionPipeline = await pipeline('image-to-text', MODEL_ID, {
+                visionPipeline = (await pipeline('image-to-text', MODEL_ID, {
                     device: 'wasm', // Strict WASM fallback
                     dtype: 'fp32',  // Strict FP32 (no quantization) to completely avoid DequantizeLinear bugs
-                    progress_callback: (info: any) => {
+                    progress_callback: (info: ProgressInfo) => {
                         self.postMessage({
                             msgId,
                             status: 'loading',
                             progress: info
                         });
                     }
-                });
+                })) as unknown as VisionPipeline;
             }
             self.postMessage({ msgId, status: 'success', data: 'Model loaded' });
             return;
@@ -40,6 +61,7 @@ self.onmessage = async (e: MessageEvent) => {
 
         if (action === 'GENERATE') {
             if (!visionPipeline) throw new Error('Vision Model not loaded');
+            if (!payload?.imageStr) throw new Error('Missing image input');
             
             const { imageStr } = payload;
             
@@ -61,7 +83,7 @@ self.onmessage = async (e: MessageEvent) => {
         }
 
         if (action === 'UNLOAD') {
-            if (visionPipeline) {
+            if (visionPipeline?.dispose) {
                 await visionPipeline.dispose();
                 visionPipeline = null;
             }
@@ -69,12 +91,12 @@ self.onmessage = async (e: MessageEvent) => {
             return;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Vision Worker Error:', error);
         self.postMessage({ 
             msgId, 
             status: 'error', 
-            error: error.message || 'Unknown error occurred in Vision Translator' 
+            error: error instanceof Error ? error.message : 'Unknown error occurred in Vision Translator' 
         });
     }
 };

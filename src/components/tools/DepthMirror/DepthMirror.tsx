@@ -1,8 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { Image as ImageIcon, Box, AlignVerticalSpaceAround } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
+
+type DepthEstimationOutput = {
+    width: number;
+    height: number;
+    data: ArrayLike<number>;
+};
 
 const DepthMirror = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
@@ -26,7 +32,7 @@ const DepthMirror = () => {
                     payload: { image: selectedItem.content }
                 });
 
-                const { width, height, data } = result.output as any;
+                const { width, height, data } = result.output as DepthEstimationOutput;
 
                 const canvas = canvasRef.current;
                 if (canvas) {

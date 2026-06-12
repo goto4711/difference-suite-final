@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { debug } from '../../../../utils/log';
 
 class ModelManager {
     constructor() {
@@ -9,7 +10,7 @@ class ModelManager {
 
     async loadModel() {
         this.isReady = true;
-        console.log("Glitch Detector (Image) using TransformersClient");
+        debug("Glitch Detector (Image) using TransformersClient");
     }
 
     async extractFeature(tensor) {

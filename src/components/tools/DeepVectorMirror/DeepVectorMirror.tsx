@@ -1,16 +1,27 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, type ComponentType } from 'react';
 import { vectorManager } from './components/VectorManager';
 import VectorHeatmap from './components/VectorHeatmap';
-import { useSuiteStore } from '../../../stores/suiteStore';
-import { Info, Cpu, Image as ImageIcon, Type, Layers } from 'lucide-react';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+import { Info, Cpu, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 
 type AnalysisMode = 'image' | 'text';
+type AttentionAnalysis = {
+    tokens: string[];
+    attention: number[] | null;
+    isSimulated?: boolean;
+};
+
+const TypedVectorHeatmap = VectorHeatmap as ComponentType<{
+    vector: number[];
+    width?: number;
+    height?: number;
+}>;
 
 
 const AttentionLens = ({ text, isProcessing }: { text: string; isProcessing: boolean }) => {
-    const [analysis, setAnalysis] = useState<{ tokens: string[], attention: number[] | null, isSimulated?: boolean } | null>(null);
+    const [analysis, setAnalysis] = useState<AttentionAnalysis | null>(null);
     const [isInternalLoading, setIsInternalLoading] = useState(false);
 
     useEffect(() => {
@@ -25,7 +36,7 @@ const AttentionLens = ({ text, isProcessing }: { text: string; isProcessing: boo
                     task: 'attention-analysis',
                     payload: { text }
                 });
-                setAnalysis(result.output as any);
+                setAnalysis(result.output as AttentionAnalysis);
             } catch (e) {
                 console.error("Attention analysis failed", e);
             } finally {
@@ -117,15 +128,6 @@ const DeepVectorMirror = () => {
     const imageItems = useMemo(() => dataset.filter(i => i.type === 'image'), [dataset]);
     const textItems = useMemo(() => dataset.filter(i => i.type === 'text'), [dataset]);
 
-    // When mode changes, optionally clear selection or try to find a match
-    useEffect(() => {
-        const item = dataset.find(i => i.id === activeItem);
-        if (item && item.type !== mode) {
-            // If the current active item doesn't match the mode, we don't force clear
-            // but the UI will handle it gracefully.
-        }
-    }, [mode]);
-
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [vector, setVector] = useState<number[]>([]);
@@ -153,8 +155,15 @@ const DeepVectorMirror = () => {
 
                 if (selectedItem.type === 'image') {
                     const img = new Image();
-                    img.src = selectedItem.content as string;
-                    await new Promise((resolve) => { img.onload = resolve; });
+                    // Attach handlers BEFORE setting src, reject on error (a revoked
+                    // blob URL otherwise leaves this promise pending forever →
+                    // "Calculating..." never resolves), and time out as a backstop.
+                    await new Promise((resolve, reject) => {
+                        const timer = setTimeout(() => reject(new Error('Image load timed out')), 15000);
+                        img.onload = () => { clearTimeout(timer); resolve(undefined); };
+                        img.onerror = () => { clearTimeout(timer); reject(new Error('Image failed to load (URL may be stale)')); };
+                        img.src = selectedItem.content as string;
+                    });
                     rawVector = await vectorManager.getVector(img, 'image');
                 } else if (selectedItem.type === 'text') {
                     rawVector = await vectorManager.getVector(selectedItem.content, 'text');
@@ -237,8 +246,7 @@ const DeepVectorMirror = () => {
                                 <div className="flex-1 p-4 flex items-center justify-center overflow-hidden">
                                     {vector.length > 0 ? (
                                         <div className="border border-gray-200 shadow-sm bg-white p-1">
-                                            {/* @ts-ignore */}
-                                            <VectorHeatmap vector={vector} width={mode === 'text' ? 300 : 400} height={mode === 'text' ? 300 : 400} />
+                                            <TypedVectorHeatmap vector={vector} width={mode === 'text' ? 300 : 400} height={mode === 'text' ? 300 : 400} />
                                         </div>
                                     ) : (
                                         <div className="text-center text-text-muted text-xs">

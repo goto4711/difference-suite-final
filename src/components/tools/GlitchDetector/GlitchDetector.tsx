@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { modelManager } from './components/GlitchModelManager';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import * as tf from '@tensorflow/tfjs';
-import { AlertTriangle, Info, Target, Trash2, Activity, Shield, Image as ImageIcon, Type } from 'lucide-react';
+import { AlertTriangle, Target, Trash2, Activity, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import GlitchDetectorTextContent from './components/GlitchDetectorText';
 
@@ -43,10 +43,10 @@ const GlitchDetector = () => {
     }
 
     // Image mode - render the original image-based component
-    return <GlitchDetectorImage inputMode={inputMode} setInputMode={setInputMode} />;
+    return <GlitchDetectorImage setInputMode={setInputMode} />;
 };
 
-const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode; setInputMode: (m: InputMode) => void }) => {
+const GlitchDetectorImage = ({ setInputMode }: { setInputMode: (m: InputMode) => void }) => {
     const { dataset, activeItem, collections } = useSuiteStore();
 
     const [mode, setMode] = useState<'train' | 'test'>('train');
@@ -69,6 +69,7 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
+    const [trainError, setTrainError] = useState<string | null>(null);
 
     useEffect(() => {
         async function init() {
@@ -84,6 +85,7 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
         if (trainingItems.length === 0) return;
 
         setIsProcessing(true);
+        setTrainError(null);
         modelManager.clear();
         setExampleCount(0);
         setProgress({ current: 0, total: trainingItems.length });
@@ -100,8 +102,14 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
                 });
 
                 const tensor = tf.browser.fromPixels(img);
-                modelManager.addExample(tensor);
-                tensor.dispose();
+                try {
+                    // MUST await: addExample runs CLIP in the worker asynchronously.
+                    // Without awaiting, the tensor below was disposed mid-extraction,
+                    // so every example silently failed and the count stayed at 0.
+                    await modelManager.addExample(tensor);
+                } finally {
+                    tensor.dispose();
+                }
 
                 setExampleCount(modelManager.getExampleCount());
                 setProgress(prev => ({ ...prev, current: i + 1 }));
@@ -110,11 +118,17 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
                 await new Promise(r => setTimeout(r, 10));
             } catch (err) {
                 console.error("Error training on item:", item.name, err);
+                setTrainError(`Failed on "${item.name}": ${err instanceof Error ? err.message : 'image could not be processed'}`);
             }
         }
 
         setIsProcessing(false);
-        setMode('test'); // Auto-switch to test mode
+        // Only enter test mode if training actually produced examples.
+        if (modelManager.getExampleCount() > 0) {
+            setMode('test');
+        } else {
+            setTrainError(prev => prev ?? 'Training produced no usable examples — check the console for details.');
+        }
     };
 
     const resetModel = () => {
@@ -134,9 +148,13 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
             setIsProcessing(true);
             try {
                 const img = new Image();
-                img.src = selectedItem.content as string;
                 img.crossOrigin = "anonymous";
-                await new Promise((resolve) => { img.onload = resolve; });
+                await new Promise((resolve, reject) => {
+                    const timer = setTimeout(() => reject(new Error('Test image load timed out')), 15000);
+                    img.onload = () => { clearTimeout(timer); resolve(undefined); };
+                    img.onerror = () => { clearTimeout(timer); reject(new Error('Test image failed to load (URL may be stale)')); };
+                    img.src = selectedItem.content as string;
+                });
 
                 const tensor = tf.browser.fromPixels(img);
                 const result = await modelManager.predict(tensor);
@@ -207,6 +225,12 @@ const GlitchDetectorImage = ({ inputMode, setInputMode }: { inputMode: InputMode
                             <p className="text-xs font-bold text-main mt-2">
                                 Learning pattern {progress.current} of {progress.total}...
                             </p>
+                        )}
+                        {trainError && !isProcessing && (
+                            <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-600">
+                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                <p>{trainError}</p>
+                            </div>
                         )}
                     </div>
                 ) : (

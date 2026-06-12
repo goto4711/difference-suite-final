@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { BookOpen, Image, Sparkles, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 
 const VisualStoryteller = () => {
@@ -11,6 +11,7 @@ const VisualStoryteller = () => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [selectedImageName, setSelectedImageName] = useState<string>('');
     const [caption, setCaption] = useState<string>('');
+    const [literalCaption, setLiteralCaption] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [progressStatus, setProgressStatus] = useState('');
     const [storyHistory, setStoryHistory] = useState<{ image: string; caption: string; name: string }[]>([]);
@@ -19,17 +20,20 @@ const VisualStoryteller = () => {
         setSelectedImage(imageUrl);
         setSelectedImageName(name);
         setCaption(''); // Clear previous caption
+        setLiteralCaption('');
     };
 
     const handleGenerateCaption = async () => {
         if (!selectedImage) return;
 
         setIsGenerating(true);
-        setProgressStatus('Initializing...');
+        setProgressStatus('Looking at the image...');
         setCaption('');
+        setLiteralCaption('');
 
         try {
-            const result = await transformersClient.run(
+            // Stage 1 — perception: Florence-2 produces a literal description.
+            const visionResult = await transformersClient.run(
                 {
                     id: crypto.randomUUID(),
                     tool: 'VisualStoryteller',
@@ -37,21 +41,71 @@ const VisualStoryteller = () => {
                     task: 'image-to-text',
                     payload: { imageSource: selectedImage, mode: 'caption' }
                 },
-                (p) => setProgressStatus(p.message || 'Processing...')
+                (p) => setProgressStatus(p.message || 'Looking at the image...')
             );
 
-            const generatedCaption = (result.output as { caption: string }).caption;
-            setCaption(generatedCaption);
+            const literal = (visionResult.output as { caption: string }).caption;
+            setLiteralCaption(literal);
+
+            // Stage 2 — imagination: SmolLM2 retells the literal description as a
+            // short, deliberately unrealistic story fragment. High temperature +
+            // sampling so each run drifts differently from the "real" description.
+            setProgressStatus('Imagining a story...');
+            const storyPrompt = `Plain description: "${literal}"\nNow retell this scene as a tiny surreal story of 2-3 sentences. Be dreamlike, metaphorical and surprising. Do not describe the image literally.\nStory:`;
+
+            let creative = literal; // fallback: if imagination fails, keep perception
+            try {
+                const storyResult = await transformersClient.run(
+                    {
+                        id: crypto.randomUUID(),
+                        tool: 'VisualStoryteller',
+                        model: 'smollm2-135m-instruct',
+                        task: 'text-generation',
+                        payload: {
+                            prompt: storyPrompt,
+                            options: {
+                                max_new_tokens: 110,
+                                // 0.95: creative drift without degenerating into emoji/symbol
+                                // soup (observed at 1.15 with this 135M model).
+                                temperature: 0.95,
+                                top_p: 0.9,
+                                do_sample: true,
+                                repetition_penalty: 1.3,
+                            }
+                        }
+                    },
+                    (p) => setProgressStatus(p.message || 'Imagining a story...')
+                );
+
+                let story = String(storyResult.output ?? '');
+                // text-generation returns prompt + completion; keep only the completion.
+                if (story.startsWith(storyPrompt)) story = story.slice(storyPrompt.length);
+                const storyMarker = story.lastIndexOf('Story:');
+                if (storyMarker !== -1) story = story.slice(storyMarker + 'Story:'.length);
+                story = story.trim().replace(/^["'\s]+|["'\s]+$/g, '');
+                // Strip emoticon/symbol runs the small model sometimes degenerates into
+                // (e.g. ";) :) -_) __()<=>") before sentence-trimming.
+                story = story.replace(/(?:\s*[;:=_\-()<>^~*\\/|[\]{}+]{2,})+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+                // Trim to the last complete sentence so we don't end mid-word.
+                const lastStop = Math.max(story.lastIndexOf('.'), story.lastIndexOf('!'), story.lastIndexOf('?'));
+                if (lastStop > 20) story = story.slice(0, lastStop + 1);
+                if (story.length >= 20) creative = story;
+            } catch (storyError) {
+                console.warn('Imagination stage failed, falling back to literal caption:', storyError);
+            }
+
+            setCaption(creative);
 
             // Add to story history
             setStoryHistory(prev => [
-                { image: selectedImage, caption: generatedCaption, name: selectedImageName },
+                { image: selectedImage, caption: creative, name: selectedImageName },
                 ...prev.slice(0, 9) // Keep last 10
             ]);
 
-        } catch (e: any) {
-            console.error('Caption generation failed:', e);
-            setCaption(`Failed: ${e.message || 'Unknown error'}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Caption generation failed:', error);
+            setCaption(`Failed: ${message}`);
         } finally {
             setIsGenerating(false);
             setProgressStatus('');
@@ -95,8 +149,16 @@ const VisualStoryteller = () => {
                                         "{caption}"
                                     </p>
                                     <p className="text-xs text-text-muted text-center mt-2 uppercase tracking-wide">
-                                        — AI Vision Model
+                                        — AI Imagination
                                     </p>
+                                    {literalCaption && literalCaption !== caption && (
+                                        <div className="mt-4 pt-3 border-t border-gray-100">
+                                            <p className="text-xs text-text-muted text-center leading-relaxed">
+                                                <span className="uppercase tracking-wide font-bold">What the vision model saw:</span>{' '}
+                                                {literalCaption}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -211,7 +273,7 @@ const VisualStoryteller = () => {
                 ) : (
                     <>
                         <Sparkles className="w-4 h-4" />
-                        Generate Caption
+                        Imagine a Story
                     </>
                 )}
             </button>

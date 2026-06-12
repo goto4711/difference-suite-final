@@ -1,4 +1,5 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import type { DataItem } from '@difference-suite/shared/types';
 
 export interface AlignmentResult {
     id: string;
@@ -7,7 +8,12 @@ export interface AlignmentResult {
     score: number;
 }
 
-export const alignDatasetToPrompt = async (prompt: string, dataset: any[]): Promise<AlignmentResult[]> => {
+type AlignmentScore = {
+    url: string;
+    score: number;
+};
+
+export const alignDatasetToPrompt = async (prompt: string, dataset: DataItem[]): Promise<AlignmentResult[]> => {
     if (!prompt.trim()) return [];
 
     const imageItems = dataset.filter(item => item.type === 'image');
@@ -29,7 +35,7 @@ export const alignDatasetToPrompt = async (prompt: string, dataset: any[]): Prom
             }
         });
 
-        const alignments = result.output as { url: string, score: number }[];
+        const alignments = result.output as AlignmentScore[];
 
         // Map back to dataset items
         return alignments.map(a => {
@@ -47,7 +53,7 @@ export const alignDatasetToPrompt = async (prompt: string, dataset: any[]): Prom
     }
 };
 
-export const findBestMatch = async (description: string, dataset: any[]): Promise<string | null> => {
+export const findBestMatch = async (description: string, dataset: DataItem[]): Promise<string | null> => {
     try {
         const matches = await alignDatasetToPrompt(description, dataset);
         return matches.length > 0 ? matches[0].url : null;

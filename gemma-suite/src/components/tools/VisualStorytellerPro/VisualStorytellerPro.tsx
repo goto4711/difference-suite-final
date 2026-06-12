@@ -81,9 +81,9 @@ Based entirely on that description, please follow this user prompt:
                 textResponse = JSON.stringify(result);
             }
             setResultText(textResponse);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            setResultText(`Error analyzing image: ${error.message}`);
+            setResultText(`Error analyzing image: ${error instanceof Error ? error.message : 'Unknown error'}`);
             setIsModelLoading(false);
         } finally {
              setIsLoading(false);

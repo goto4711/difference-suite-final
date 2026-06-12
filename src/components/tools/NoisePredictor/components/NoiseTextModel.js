@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import { debug } from '../../../../utils/log';
 
 export class NoiseTextModel {
     constructor() {
@@ -41,7 +42,7 @@ export class NoiseTextModel {
             loss: 'meanSquaredError'
         });
 
-        console.log('NoiseTextModel: Model created with latent dim', latentDim);
+        debug('NoiseTextModel: Model created with latent dim', latentDim);
     }
 
     async train(embeddingsTensor, epochs = 50, onEpochEnd) {

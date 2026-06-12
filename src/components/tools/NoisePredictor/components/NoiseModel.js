@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import { debug } from '../../../../utils/log';
 
 export class NoiseModel {
     constructor() {
@@ -7,12 +8,12 @@ export class NoiseModel {
     }
 
     async createModel(inputShape, latentDim = 32) {
-        console.log('Creating model with input shape:', inputShape);
+        debug('Creating model with input shape:', inputShape);
         this.latentDim = latentDim;
 
         // Encoder
         const input = tf.input({ shape: inputShape });
-        console.log('Input created');
+        debug('Input created');
 
         let x = tf.layers.conv2d({
             filters: 16,
@@ -57,16 +58,16 @@ export class NoiseModel {
             padding: 'same'
         }).apply(x);
 
-        console.log('Building model...');
+        debug('Building model...');
         this.model = tf.model({ inputs: input, outputs: output });
-        console.log('Model built, output shape:', this.model.outputShape);
+        debug('Model built, output shape:', this.model.outputShape);
 
         this.model.compile({
             optimizer: tf.train.adam(0.001),
             loss: 'meanSquaredError'
         });
 
-        console.log('Model compiled successfully');
+        debug('Model compiled successfully');
     }
 
     async train(tensor, epochs = 50, onEpochEnd) {
@@ -75,7 +76,7 @@ export class NoiseModel {
             return;
         }
 
-        console.log('model.fit starting...');
+        debug('model.fit starting...');
 
         await this.model.fit(tensor, tensor, {
             epochs: epochs,
@@ -84,10 +85,10 @@ export class NoiseModel {
             yieldEvery: 'epoch',
             callbacks: {
                 onEpochBegin: () => {
-                    console.log('Epoch beginning...');
+                    debug('Epoch beginning...');
                 },
                 onEpochEnd: (epoch, logs) => {
-                    console.log(`Epoch ${epoch} complete, loss: ${logs.loss}`);
+                    debug(`Epoch ${epoch} complete, loss: ${logs.loss}`);
                     if (onEpochEnd) {
                         onEpochEnd(epoch, logs.loss);
                     }
@@ -95,7 +96,7 @@ export class NoiseModel {
             }
         });
 
-        console.log('model.fit complete');
+        debug('model.fit complete');
     }
 
     predict(tensor) {

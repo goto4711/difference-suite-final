@@ -1,24 +1,32 @@
 import React, { useState, useMemo } from 'react';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import { Sparkles, BookOpen, GitBranch, Lightbulb, Send, BrainCircuit, FileText, ChevronDown } from 'lucide-react';
+import type { DataItem } from '@difference-suite/shared/types';
+import { debug } from '../../../utils/log';
 
 const MODES = [
     { id: 'define', label: 'Define', icon: BookOpen, prompt: "Define and explain this concept clearly: " },
     { id: 'expand', label: 'Expand', icon: GitBranch, prompt: "List 5 related concepts or hidden connections to: " },
     { id: 'tangent', label: 'Tangent', icon: Lightbulb, prompt: "Write a creative, abstract metaphor describing: " }
-];
+] as const;
+
+type OracleMode = 'define' | 'expand' | 'tangent';
+
+const getCorpusItemContent = (item: DataItem) => (
+    typeof item.content === 'string' ? item.content : item.name
+);
 
 const SemanticOracle = () => {
     const store = useSuiteStore();
     // FIX: store uses 'dataset', not 'items'
-    const dataset = store?.dataset || [];
+    const dataset = store?.dataset;
 
-    console.log('SemanticOracle mounting. Dataset size:', dataset?.length);
+    debug('SemanticOracle mounting. Dataset size:', dataset?.length ?? 0);
 
     const [input, setInput] = useState('');
     const [output, setOutput] = useState('');
-    const [mode, setMode] = useState('define');
+    const [mode, setMode] = useState<OracleMode>('define');
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState(0);
     const [showCorpus, setShowCorpus] = useState(false);
@@ -28,11 +36,11 @@ const SemanticOracle = () => {
     const textCorpus = useMemo(() => {
         try {
             if (!dataset) return [];
-            const texts = dataset.filter(i => i && i.type === 'text');
-            console.log('Corpus filtered. Text items found:', texts.length);
+            const texts = dataset.filter(item => item.type === 'text');
+            debug('Corpus filtered. Text items found:', texts.length);
             return texts;
-        } catch (e) {
-            console.error('Error filtering corpus:', e);
+        } catch (error) {
+            console.error('Error filtering corpus:', error);
             return [];
         }
     }, [dataset]);
@@ -61,9 +69,10 @@ const SemanticOracle = () => {
             );
 
             setOutput(result.output as string);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Unknown error during generation";
             console.error("Oracle failed:", error);
-            setError(error.message || "Unknown error during generation");
+            setError(message);
             setOutput("The Oracle is clouded. (Model generation failed)");
         } finally {
             setIsGenerating(false);
@@ -181,14 +190,11 @@ const SemanticOracle = () => {
                                         {showCorpus && (
                                             <div className="absolute bottom-full right-0 mb-2 w-64 max-h-60 overflow-y-auto bg-white border border-black/10 rounded-lg shadow-xl z-20 custom-scrollbar">
                                                 <div className="p-2 text-[10px] font-bold uppercase text-text-muted border-b border-black/5 mb-1">Select Text Item</div>
-                                                {dataset.map(item => (
+                                                {(dataset ?? []).map(item => (
                                                     <button
                                                         key={item.id}
-                                                        // Only enable click if it has text content
                                                         onClick={() => {
-                                                            // @ts-ignore
-                                                            const content = item.content || item.text || item.description || item.name;
-                                                            handleSelectCorpusItem(content);
+                                                            handleSelectCorpusItem(getCorpusItemContent(item));
                                                         }}
                                                         className="w-full text-left px-3 py-2 text-sm text-text hover:bg-main/5 hover:text-main truncate transition-colors flex items-center justify-between group"
                                                     >

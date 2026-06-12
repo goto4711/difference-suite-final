@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, RefreshCw, EyeOff, Info, Sliders, Brain, Type, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Play, RefreshCw, EyeOff, Sliders, Brain, Type, Image as ImageIcon, Sparkles } from 'lucide-react';
 import * as tf from '@tensorflow/tfjs';
 import { NoiseModel } from './components/NoiseModel';
 import { NoiseTextModel } from './components/NoiseTextModel';
 import { ResidualCanvas } from './components/ResidualCanvas';
 import { latentTextManager } from '../LatentSpaceNavigator/components/LatentTextModelManager';
-import { useSuiteStore } from '../../../stores/suiteStore';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
 
 type NavMode = 'image' | 'text';
+type NeighborResult = { word: string; score: number };
 
 const SpectralHeatmap = ({ tensor }: { tensor: tf.Tensor2D }) => {
     const data = tensor.dataSync();
     // 512 dimensions = 16x32 grid
-    const rows = 16;
     const cols = 32;
 
     return (
@@ -64,7 +64,7 @@ const NoisePredictor = () => {
 
     // Logic/UI State
     const [echoResult, setEchoResult] = useState<string | null>(null);
-    const [neighborResults, setNeighborResults] = useState<any[]>([]);
+    const [neighborResults, setNeighborResults] = useState<NeighborResult[]>([]);
     const [isTraining, setIsTraining] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [loss, setLoss] = useState(0);
