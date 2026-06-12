@@ -39,6 +39,12 @@ export interface ToolDefinition {
     icon: LucideIcon;
     description: string;
     component: LazyExoticComponent<ComponentType>;
+    /**
+     * String that this tool passes as `request.tool` to TransformersClient.
+     * Drives the "Show the machine's work" drawer's per-tool filter.
+     * Omit for tools that do not run inference.
+     */
+    toolId?: string;
 }
 
 /**
@@ -62,21 +68,24 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Ambiguity Amplifier',
         icon: Zap,
         description: 'Amplify ambiguous elements in the data stream.',
-        component: AmbiguityAmplifier
+        component: AmbiguityAmplifier,
+        toolId: 'AmbiguityAmplifier'
     },
     {
         path: '/context-weaver',
         label: 'Context Weaver',
         icon: Share2,
         description: 'Weave together context from multiple sources.',
-        component: ContextWeaver
+        component: ContextWeaver,
+        toolId: 'ContextWeaver'
     },
     {
         path: '/deep-vector-mirror',
         label: 'Deep Vector Mirror',
         icon: Layers,
         description: 'Visualize deep learning vectorization.',
-        component: DeepVectorMirror
+        component: DeepVectorMirror,
+        toolId: 'DeepVectorMirror'
     },
     {
         path: '/deep-time',
@@ -90,14 +99,16 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Depth Mirror',
         icon: ImageIcon,
         description: 'Estimate and visualize depth cues in images.',
-        component: DepthMirror
+        component: DepthMirror,
+        toolId: 'DepthMirror'
     },
     {
         path: '/detail-extractor',
         label: 'Detail Extractor',
         icon: Search,
         description: 'Analyze and extract fine-grained details from images.',
-        component: DetailExtractor
+        component: DetailExtractor,
+        toolId: 'DetailExtractor'
     },
     {
         path: '/discontinuity-detector',
@@ -111,28 +122,32 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Glitch Detector',
         icon: AlertTriangle,
         description: 'Identify and analyze system glitches.',
-        component: GlitchDetector
+        component: GlitchDetector,
+        toolId: 'GlitchDetector'
     },
     {
         path: '/imagination-inspector',
         label: 'Imagination Inspector',
         icon: Sparkles,
         description: 'Probe the boundaries of generative imagination.',
-        component: ImaginationInspector
+        component: ImaginationInspector,
+        toolId: 'ImaginationInspector'
     },
     {
         path: '/latent-navigator',
         label: 'Latent Space Navigator',
         icon: Layers,
         description: 'Navigate through the latent space of the model.',
-        component: LatentSpaceNavigator
+        component: LatentSpaceNavigator,
+        toolId: 'LatentSpaceNavigator'
     },
     {
         path: '/networked-narratives',
         label: 'Networked Narratives',
         icon: FileText,
         description: 'Explore narrative structures in networked data.',
-        component: NetworkedNarratives
+        component: NetworkedNarratives,
+        toolId: 'NetworkedNarratives'
     },
     {
         path: '/noise-predictor',
@@ -153,13 +168,15 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Semantic Oracle',
         icon: BrainCircuit,
         description: 'Consult the local intelligence for definitions and ideas.',
-        component: SemanticOracle
+        component: SemanticOracle,
+        toolId: 'SemanticOracle'
     },
     {
         path: '/visual-storyteller',
         label: 'Visual Storyteller',
         icon: FileText,
         description: 'Generate AI captions from images.',
-        component: VisualStoryteller
+        component: VisualStoryteller,
+        toolId: 'VisualStoryteller'
     },
 ];
