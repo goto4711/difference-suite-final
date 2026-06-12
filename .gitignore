@@ -25,3 +25,6 @@ dist-ssr
 
 # Vite
 *.tsbuildinfo
+
+# Claude Code agent local settings
+.claude/
