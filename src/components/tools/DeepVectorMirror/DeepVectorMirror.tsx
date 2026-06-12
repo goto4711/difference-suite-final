@@ -6,6 +6,7 @@ import { Info, Cpu, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import ContestButton from '../../contestation/ContestButton';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type AnalysisMode = 'image' | 'text';
 type AttentionAnalysis = {
@@ -187,6 +188,22 @@ const DeepVectorMirror = () => {
 
         processItem();
     }, [selectedItem, noiseLevel, contextLevel, mode]);
+
+    useReportCurrentOutput({
+        toolId: 'DeepVectorMirror',
+        outputSummary:
+            selectedItem && selectedItem.type === mode && vector.length > 0
+                ? `Item: ${selectedItem.name} (${mode}) — noise ${(noiseLevel * 100).toFixed(0)}%, context shift ${(contextLevel * 100).toFixed(0)}%`
+                : null,
+        settings:
+            selectedItem && selectedItem.type === mode && vector.length > 0
+                ? {
+                      mode,
+                      noise: Number(noiseLevel.toFixed(2)),
+                      contextShift: Number(contextLevel.toFixed(2)),
+                  }
+                : undefined,
+    });
 
     const mainContent = (
         <div className="h-full flex flex-col">

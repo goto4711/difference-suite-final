@@ -6,6 +6,7 @@ import { AlertTriangle, Target, Trash2, Activity, Image as ImageIcon, Type } fro
 import ToolLayout from '../../shared/ToolLayout';
 import GlitchDetectorTextContent from './components/GlitchDetectorText';
 import ContestButton from '../../contestation/ContestButton';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type InputMode = 'image' | 'text';
 
@@ -175,6 +176,15 @@ const GlitchDetectorImage = ({ setInputMode }: { setInputMode: (m: InputMode) =>
 
         detect();
     }, [selectedItem, threshold, exampleCount, isModelReady, mode]);
+
+    const hasVerdict = mode === 'test' && !!selectedItem && selectedItem.type === 'image' && exampleCount > 0;
+    useReportCurrentOutput({
+        toolId: 'GlitchDetector',
+        outputSummary: hasVerdict
+            ? `${selectedItem.name} scored ${(confidence * 100).toFixed(0)}% normality at threshold ${threshold.toFixed(2)} → ${isAnomaly ? 'GLITCH DETECTED' : 'Normal'}`
+            : null,
+        settings: hasVerdict ? { threshold: Number(threshold.toFixed(2)) } : undefined,
+    });
 
     const mainContent = (
         <div className="h-full flex flex-col">

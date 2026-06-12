@@ -6,6 +6,7 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import { debug } from '../../../utils/log';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 const DEFAULT_TEXT = "During World War II, the French Resistance played a critical role against the Nazi occupation. Jean Moulin was sent by Charles de Gaulle from London to unite the various movements. In Lyon, Moulin organized the secret army to fight the Gestapo. The Allies coordinated with the Resistance before the invasion of Normandy. General Eisenhower later praised the efforts of the French forces in liberating Paris.";
 
@@ -176,6 +177,22 @@ const NetworkedNarratives = () => {
             return part;
         });
     };
+
+    useReportCurrentOutput({
+        toolId: 'NetworkedNarratives',
+        outputSummary:
+            graphData.nodes.length > 0
+                ? `Extracted ${graphData.nodes.length} entities, ${graphData.links.length} relations from text (${text.length} chars)${enableVisualSynapse ? ', visual synapse on' : ''}`
+                : null,
+        settings:
+            graphData.nodes.length > 0
+                ? {
+                      entities: graphData.nodes.length,
+                      relations: graphData.links.length,
+                      visualSynapse: enableVisualSynapse ? 'on' : 'off',
+                  }
+                : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col gap-6 h-full p-1">

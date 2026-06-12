@@ -5,9 +5,15 @@ import { LoginModal } from '../auth/LoginModal';
 
 interface HeaderProps {
     StatusWidget: ComponentType;
+    /**
+     * Optional widget rendered to the left of the StatusWidget. Used by
+     * difference-suite to surface the global "Contest this" button next to
+     * the model status indicator. Omitting it (gemma-suite) renders nothing.
+     */
+    LeftWidget?: ComponentType;
 }
 
-export const Header = ({ StatusWidget }: HeaderProps) => {
+export const Header = ({ StatusWidget, LeftWidget }: HeaderProps) => {
     const { isAuthenticated, userEmail, logout } = useSuiteStore();
     const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -16,6 +22,7 @@ export const Header = ({ StatusWidget }: HeaderProps) => {
             <div className="flex items-center gap-4" />
 
             <div className="flex items-center gap-6">
+                {LeftWidget && <LeftWidget />}
                 <StatusWidget />
                 <button className="btn-icon">
                     <Search className="w-5 h-5" />

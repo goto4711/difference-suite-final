@@ -243,7 +243,7 @@ const ContestationMatrixView = ({ participants }: { participants: Participant[] 
     );
 };
 
-const WorkshopPage = () => {
+const CollaborationPage = () => {
     const localRecords = useContestationStore((s) => s.records);
 
     const [imported, setImported] = useState<ImportedPacket[]>([]);
@@ -334,13 +334,13 @@ const WorkshopPage = () => {
         downloadBlob(
             JSON.stringify(packet, null, 2),
             'application/json',
-            `workshop-${packetFilename()}`,
+            `collaboration-${packetFilename()}`,
         );
     };
 
     const handleExportHtml = () => {
         const html = buildHtmlPacket(mergedRecords);
-        downloadBlob(html, 'text/html;charset=utf-8', `workshop-${htmlPacketFilename()}`);
+        downloadBlob(html, 'text/html;charset=utf-8', `collaboration-${htmlPacketFilename()}`);
     };
 
     return (
@@ -351,11 +351,11 @@ const WorkshopPage = () => {
                         <Users className="w-5 h-5" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-main">Workshop</h1>
+                        <h1 className="text-xl font-bold text-main">Collaboration</h1>
                         <p className="text-sm text-text-muted max-w-2xl mt-1">
-                            Drop in evidence packets from other workshop participants. Their
+                            Drop in evidence packets from others — classmates, colleagues, workshop participants. Their
                             dissent stays in this browser tab only — imported packets are not
-                            persisted. A workshop is an event, not a database.
+                            persisted. A collaboration is an encounter, not a database.
                         </p>
                     </div>
                 </div>
@@ -501,7 +501,7 @@ const WorkshopPage = () => {
                     Combined export
                 </h2>
                 <p className="text-[11px] text-text-muted mb-3">
-                    The workshop's collective record — all participants' contestations merged
+                    The group's collective record — all participants' contestations merged
                     and deduplicated by id.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -532,4 +532,4 @@ const WorkshopPage = () => {
     );
 };
 
-export default WorkshopPage;
+export default CollaborationPage;

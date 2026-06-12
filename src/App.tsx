@@ -9,8 +9,11 @@ import Sidebar from './components/shared/Sidebar';
 import { ModelStatusWidget } from './components/shared/ModelStatusWidget';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { EMBEDDING_MODEL_VERSION } from './core/inference/modelRegistry';
+import ContestHeaderButton from './components/contestation/ContestHeaderButton';
 
-const HeaderComponent = () => <SharedHeader StatusWidget={ModelStatusWidget} />;
+const HeaderComponent = () => (
+    <SharedHeader StatusWidget={ModelStatusWidget} LeftWidget={ContestHeaderButton} />
+);
 
 function App() {
   const setEmbeddingModelVersion = useSuiteStore(s => s.setEmbeddingModelVersion);

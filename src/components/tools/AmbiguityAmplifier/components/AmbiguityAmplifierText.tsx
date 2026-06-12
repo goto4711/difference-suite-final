@@ -5,6 +5,7 @@ import { Loader2, Plus, Trash2, Volume2, FolderOpen, Play } from 'lucide-react';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import type { Collection, DataItem } from '@difference-suite/shared/types';
 import { debug } from '../../../../utils/log';
+import { useReportCurrentOutput } from '../../../../stores/currentOutputStore';
 
 type Prediction = { className: string; probability: number };
 
@@ -162,6 +163,15 @@ const AmbiguityAmplifierText = () => {
         setExampleCounts({});
         setPredictions([]);
     };
+
+    useReportCurrentOutput({
+        toolId: 'AmbiguityAmplifier',
+        outputSummary:
+            predictions.length > 0
+                ? `Text: "${testSentence.length > 120 ? testSentence.slice(0, 120) + '…' : testSentence}" → top: ${predictions[0].className} (${(predictions[0].probability * 100).toFixed(1)}%) at noise ${(noiseLevel * 100).toFixed(0)}%`
+                : null,
+        settings: predictions.length > 0 ? { mode: 'text', noise: Number(noiseLevel.toFixed(2)) } : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col h-full gap-6 p-6 bg-white rounded-lg border border-gray-200 shadow-sm overflow-y-auto">

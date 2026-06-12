@@ -7,6 +7,7 @@ import { ResidualCanvas } from './components/ResidualCanvas';
 import { latentTextManager } from '../LatentSpaceNavigator/components/LatentTextModelManager';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type NavMode = 'image' | 'text';
 type NeighborResult = { word: string; score: number };
@@ -159,6 +160,19 @@ const NoisePredictor = () => {
     };
 
     // Empty state handled in main render
+
+    const hasOutput = reconstructedTensor !== null && !!selectedItem;
+    useReportCurrentOutput({
+        toolId: 'NoisePredictor',
+        outputSummary: hasOutput
+            ? mode === 'image'
+                ? `Reconstructed ${selectedItem!.name} after ${epoch} epochs (loss ${loss.toFixed(4)}); residual visualized`
+                : `Semantic echo of "${(content || '').slice(0, 120)}${content && content.length > 120 ? '…' : ''}": "${echoResult || '(none)'}" (${epoch} epochs, loss ${loss.toFixed(4)})`
+            : null,
+        settings: hasOutput
+            ? { mode, latentDim, epochs: epoch, loss: Number(loss.toFixed(4)) }
+            : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

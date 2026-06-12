@@ -6,6 +6,7 @@ import VectorInspector from './components/VectorInspector';
 import { processContexts, extractSemanticKeywords } from './utils/ContextProcessor';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type ContextDefinition = {
     name: string;
@@ -139,6 +140,22 @@ const ContextWeaver = () => {
             color
         });
     };
+
+    useReportCurrentOutput({
+        toolId: 'ContextWeaver',
+        outputSummary:
+            results.length > 0
+                ? [
+                      `Query: ${effectiveQuery.length > 240 ? effectiveQuery.slice(0, 240) + '…' : effectiveQuery}`,
+                      ...results.map((r) => {
+                          const top = r.matches[0];
+                          return top
+                              ? `${r.contextName}: top "${top.text.length > 120 ? top.text.slice(0, 120) + '…' : top.text}" (sim ${top.similarity.toFixed(3)})`
+                              : `${r.contextName}: no matches`;
+                      }),
+                  ].join('\n')
+                : null,
+    });
 
     const mainContent = (
         <div className="flex flex-col gap-6 p-1">

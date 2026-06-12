@@ -6,6 +6,7 @@ import type { DataItem } from '@difference-suite/shared/types';
 import { debug } from '../../../utils/log';
 import { MachineWorkDrawer } from '../../machineRoom/MachineWorkDrawer';
 import ContestButton from '../../contestation/ContestButton';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 const MODES = [
     { id: 'define', label: 'Define', icon: BookOpen, prompt: "Define and explain this concept clearly: " },
@@ -87,6 +88,14 @@ const SemanticOracle = () => {
         setInput(truncated);
         setShowCorpus(false);
     };
+
+    useReportCurrentOutput({
+        toolId: 'SemanticOracle',
+        outputSummary: output
+            ? `Prompt (${mode}): ${input}\nAnswer: ${output.length > 500 ? output.slice(0, 500) + '…' : output}`
+            : null,
+        settings: output ? { mode } : undefined,
+    });
 
     if (!store) {
         return (

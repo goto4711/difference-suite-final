@@ -3,6 +3,7 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { Image as ImageIcon, Box, AlignVerticalSpaceAround } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import { transformersClient } from '../../../core/inference/TransformersClient';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type DepthEstimationOutput = {
     width: number;
@@ -16,6 +17,7 @@ const DepthMirror = () => {
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [isProcessing, setIsProcessing] = useState(false);
+    const [hasDepthMap, setHasDepthMap] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -52,6 +54,7 @@ const DepthMirror = () => {
                         ctx.putImageData(imgData, 0, 0);
                     }
                 }
+                setHasDepthMap(true);
 
             } catch (error) {
                 console.error("Depth estimation failed:", error);
@@ -60,8 +63,17 @@ const DepthMirror = () => {
             }
         };
 
+        setHasDepthMap(false);
         processDepth();
     }, [selectedItem]);
+
+    useReportCurrentOutput({
+        toolId: 'DepthMirror',
+        outputSummary:
+            selectedItem && selectedItem.type === 'image' && hasDepthMap
+                ? `Depth map estimated for ${selectedItem.name}`
+                : null,
+    });
 
     const mainContent = (
         <div className="h-full flex flex-col">

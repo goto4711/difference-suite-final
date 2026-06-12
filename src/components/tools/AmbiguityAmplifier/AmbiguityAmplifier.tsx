@@ -5,6 +5,7 @@ import * as tf from '@tensorflow/tfjs';
 import { Zap, Info, AlertTriangle, Activity, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
 import AmbiguityAmplifierTextContent from './components/AmbiguityAmplifierText';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 interface Prediction {
     className: string;
@@ -97,6 +98,15 @@ const AmbiguityAmplifierImage = ({ mode, setMode }: { mode: AnalysisMode; setMod
 
         processItem();
     }, [selectedItem, noiseLevel, isModelReady]);
+
+    const hasPredictions = predictions.length > 0 && !!selectedItem && selectedItem.type === 'image';
+    useReportCurrentOutput({
+        toolId: 'AmbiguityAmplifier',
+        outputSummary: hasPredictions
+            ? `Image: ${selectedItem.name} — top: ${predictions[0].className.split(',')[0]} (${(predictions[0].probability * 100).toFixed(1)}%) at noise ${(noiseLevel * 100).toFixed(0)}%`
+            : null,
+        settings: hasPredictions ? { mode: 'image', noise: Number(noiseLevel.toFixed(2)) } : undefined,
+    });
 
     const mainContent = (
         <div className="h-full flex flex-col">

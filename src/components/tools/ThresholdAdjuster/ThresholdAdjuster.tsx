@@ -9,6 +9,7 @@ import ToolLayout from '../../shared/ToolLayout';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { parseCSV } from '../DiscontinuityDetector/utils/DataProcessor.js';
 import type { DataItem } from '@difference-suite/shared/types';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 interface ThresholdCase {
     id: string;
@@ -119,6 +120,16 @@ const ThresholdAdjuster = () => {
             };
         }
     }, [selectedItem]);
+
+    const aboveThreshold = data.filter((c) => (c.risk_score as number) >= threshold).length;
+    useReportCurrentOutput({
+        toolId: 'ThresholdAdjuster',
+        outputSummary:
+            data.length > 0
+                ? `Source: ${selectedItem?.name ?? 'demo data'}; threshold ${threshold.toFixed(2)} → ${aboveThreshold} of ${data.length} cases above`
+                : null,
+        settings: data.length > 0 ? { threshold: Number(threshold.toFixed(2)), total: data.length, above: aboveThreshold } : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col h-full gap-6">

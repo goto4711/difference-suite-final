@@ -8,6 +8,7 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { parseCSV } from './utils/DataProcessor';
 import ToolLayout from '../../shared/ToolLayout';
 import type { DataItem } from '@difference-suite/shared/types';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 interface TimeSeriesDatum {
     id: number | string;
@@ -101,6 +102,23 @@ const DiscontinuityDetector = () => {
             handleReset();
         }
     }, [selectedItem, data.length, handleReset, loadFromItem]);
+
+    const anomalyCount = data.filter((d) => d.isAnomaly).length;
+    useReportCurrentOutput({
+        toolId: 'DiscontinuityDetector',
+        outputSummary:
+            data.length > 0
+                ? `Source: ${selectedItem?.name ?? 'mock series'}; ${anomalyCount} of ${data.length} points flagged as anomalies${trainingLoss !== null ? ` (final loss ${trainingLoss.toFixed(4)})` : ''}`
+                : null,
+        settings:
+            data.length > 0
+                ? {
+                      total: data.length,
+                      anomalies: anomalyCount,
+                      ...(trainingLoss !== null ? { loss: Number(trainingLoss.toFixed(4)) } : {}),
+                  }
+                : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative">

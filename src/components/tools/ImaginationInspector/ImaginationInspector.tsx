@@ -8,6 +8,7 @@ import { generateImages, type GenerateOptions, type GeneratedResult } from './ut
 import { analyzeBias } from './utils/BiasAnalyzer';
 import ToolLayout from '../../shared/ToolLayout';
 import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 interface BiasCategoryReport {
     present: Array<{ tag: string; count: number; percentage: number }>;
@@ -100,6 +101,33 @@ const ImaginationInspector = () => {
             setPromptB(text);
         }
     };
+
+    const hasOutput = resultsA.length > 0 || resultsB.length > 0;
+    useReportCurrentOutput({
+        toolId: 'ImaginationInspector',
+        outputSummary: hasOutput
+            ? [
+                  mode === 'compare'
+                      ? `Prompt A: ${promptA || '—'} (${resultsA.length} images)`
+                      : `Prompt: ${promptA || '—'} (${resultsA.length} images)`,
+                  mode === 'compare'
+                      ? `Prompt B: ${promptB || '—'} (${resultsB.length} images)`
+                      : '',
+                  adjectiveMode === 'fixed'
+                      ? `Fixed adjective: ${fixedAdjective}`
+                      : 'Adjective: varied',
+              ]
+                  .filter(Boolean)
+                  .join('\n')
+            : null,
+        settings: hasOutput
+            ? {
+                  mode,
+                  adjectiveMode,
+                  ...(adjectiveMode === 'fixed' ? { fixedAdjective } : {}),
+              }
+            : undefined,
+    });
 
     const renderPanel = (
         label: string,

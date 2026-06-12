@@ -5,6 +5,7 @@ import DetailView from './components/DetailView';
 import { processTextData, loadModels } from './utils/DataProcessor';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 interface DetailPoint {
     id: number;
@@ -96,6 +97,16 @@ const DetailExtractor = () => {
         setUseDataset(true);
         handleProcess(texts);
     };
+
+    const clusterCount = new Set(data.map((d) => d.cluster)).size;
+    useReportCurrentOutput({
+        toolId: 'DetailExtractor',
+        outputSummary:
+            data.length > 0
+                ? `Clustered ${data.length} text items into ${clusterCount} clusters${selectedItem ? `; inspecting "${(selectedItem.content || '').slice(0, 120)}${selectedItem.content && selectedItem.content.length > 120 ? '…' : ''}"` : ''}`
+                : null,
+        settings: data.length > 0 ? { items: data.length, clusters: clusterCount } : undefined,
+    });
 
     const mainContent = (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative">

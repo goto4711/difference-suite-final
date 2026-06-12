@@ -20,7 +20,7 @@ import {
 
 const MachineRoom = lazy(() => import('../components/machineRoom/MachineRoom'));
 const ContestationsPage = lazy(() => import('../components/contestation/ContestationsPage'));
-const WorkshopPage = lazy(() => import('../components/contestation/WorkshopPage'));
+const CollaborationPage = lazy(() => import('../components/contestation/CollaborationPage'));
 const AmbiguityAmplifier = lazy(() => import('../components/tools/AmbiguityAmplifier/AmbiguityAmplifier'));
 const ContextWeaver = lazy(() => import('../components/tools/ContextWeaver/ContextWeaver'));
 const DeepVectorMirror = lazy(() => import('../components/tools/DeepVectorMirror/DeepVectorMirror'));
@@ -72,11 +72,11 @@ export const MAIN_MENU_EXTRAS: ToolDefinition[] = [
         component: ContestationsPage,
     },
     {
-        path: '/workshop',
-        label: 'Workshop',
+        path: '/collaboration',
+        label: 'Collaboration',
         icon: Users,
         description: 'Import packets from other participants. Make group disagreement visible.',
-        component: WorkshopPage,
+        component: CollaborationPage,
     },
 ];
 
@@ -110,7 +110,8 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Deep Time',
         icon: Timer,
         description: 'Explore how AI architectures handle time and memory.',
-        component: DeepTime
+        component: DeepTime,
+        toolId: 'DeepTime'
     },
     {
         path: '/depth-mirror',
@@ -133,7 +134,8 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Discontinuity Detector',
         icon: Clock,
         description: 'Detect temporal and spatial discontinuities.',
-        component: DiscontinuityDetector
+        component: DiscontinuityDetector,
+        toolId: 'DiscontinuityDetector'
     },
     {
         path: '/glitch-detector',
@@ -172,14 +174,16 @@ export const TOOLS: ToolDefinition[] = [
         label: 'Noise Predictor',
         icon: ImageIcon,
         description: 'Predict and visualize noise patterns.',
-        component: NoisePredictor
+        component: NoisePredictor,
+        toolId: 'NoisePredictor'
     },
     {
         path: '/threshold-adjuster',
         label: 'Threshold Adjuster',
         icon: Sliders,
         description: 'Fine-tune detection thresholds.',
-        component: ThresholdAdjuster
+        component: ThresholdAdjuster,
+        toolId: 'ThresholdAdjuster'
     },
     {
         path: '/semantic-oracle',

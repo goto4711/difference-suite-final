@@ -4,6 +4,7 @@ import ToolLayout from '../../../shared/ToolLayout';
 import { Loader2, Plus, Trash2, AlertTriangle, CheckCircle, FolderOpen, Play } from 'lucide-react';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import type { Collection, DataItem } from '@difference-suite/shared/types';
+import { useReportCurrentOutput } from '../../../../stores/currentOutputStore';
 
 const hasTextContent = (item: DataItem): item is DataItem & { content: string } =>
     item.type === 'text' && typeof item.content === 'string' && item.content.length > 0;
@@ -79,6 +80,15 @@ const GlitchDetectorText = () => {
         // Reload to re-seed anomaly examples
         window.location.reload();
     };
+
+    const hasVerdict = exampleCount > 0 && !!testSentence.trim();
+    useReportCurrentOutput({
+        toolId: 'GlitchDetector',
+        outputSummary: hasVerdict
+            ? `Text: "${testSentence.length > 120 ? testSentence.slice(0, 120) + '…' : testSentence}" scored ${(confidence * 100).toFixed(0)}% normality at threshold ${threshold.toFixed(2)} → ${isAnomaly ? 'GLITCH DETECTED' : 'Normal'}`
+            : null,
+        settings: hasVerdict ? { mode: 'text', threshold: Number(threshold.toFixed(2)) } : undefined,
+    });
 
     const mainContent = (
         <div className={`flex flex-col h-full gap-6 p-6 rounded-lg border shadow-sm overflow-y-auto transition-all duration-300 ${isAnomaly ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>

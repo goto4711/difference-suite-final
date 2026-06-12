@@ -4,6 +4,7 @@ import ToolLayout from '../../shared/ToolLayout';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import ContestButton from '../../contestation/ContestButton';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 const VisualStoryteller = () => {
     const { dataset } = useSuiteStore();
@@ -112,6 +113,21 @@ const VisualStoryteller = () => {
             setProgressStatus('');
         }
     };
+
+    useReportCurrentOutput({
+        toolId: 'VisualStoryteller',
+        outputSummary: caption
+            ? [
+                  `Image: ${selectedImageName || '(unnamed)'}`,
+                  literalCaption
+                      ? `Literal: ${literalCaption.length > 240 ? literalCaption.slice(0, 240) + '…' : literalCaption}`
+                      : '',
+                  `Story: ${caption.length > 240 ? caption.slice(0, 240) + '…' : caption}`,
+              ]
+                  .filter(Boolean)
+                  .join('\n')
+            : null,
+    });
 
     const mainContent = (
         <div className="flex flex-col gap-6 h-full p-1">

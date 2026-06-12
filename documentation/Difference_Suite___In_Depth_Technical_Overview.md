@@ -97,7 +97,7 @@ App.tsx
 | `/` | Dashboard | Data management home |
 | `/machine-room` | MachineRoom | Inference-layer event journal — what loaded, evicted, fell back |
 | `/contestations` | ContestationsPage | Ledger of recorded dissent; export evidence packets (JSON/HTML) |
-| `/workshop` | WorkshopPage | Import packets from multiple participants; visualise group divergence |
+| `/collaboration` | CollaborationPage | Import packets from multiple participants; visualise group divergence |
 | `/ambiguity-amplifier` | AmbiguityAmplifier | Classification ambiguity |
 | `/context-weaver` | ContextWeaver | Cross-context semantic comparison |
 | `/deep-time` | DeepTime | Explore generative constraints and temporal decay |

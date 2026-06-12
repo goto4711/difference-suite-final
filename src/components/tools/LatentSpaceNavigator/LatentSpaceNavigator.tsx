@@ -7,6 +7,7 @@ import { Layers, Sparkles, Image as ImageIcon, Type, ArrowRight, BrainCircuit, W
 import ToolLayout from '../../shared/ToolLayout';
 import { extractSemanticKeywords } from '../ContextWeaver/utils/ContextProcessor';
 import { debug } from '../../../utils/log';
+import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
 type NavMode = 'image' | 'text';
 type ImagePrediction = { className: string; probability: number };
@@ -240,6 +241,23 @@ const LatentSpaceNavigator = () => {
         const timeoutId = setTimeout(computeText, 150);
         return () => clearTimeout(timeoutId);
     }, [conceptA, conceptB, sliderValue, isModelReady, mode]);
+
+    const itemNameById = (id: string | null) =>
+        id ? dataset.find((d) => d.id === id)?.name ?? '(unnamed)' : '(unset)';
+    const imageHasOutput = mode === 'image' && imagePrediction.length > 0;
+    const textHasOutput = mode === 'text' && textResults.length > 0;
+    useReportCurrentOutput({
+        toolId: 'LatentSpaceNavigator',
+        outputSummary: imageHasOutput
+            ? `Image blend (${(sliderValue * 100).toFixed(0)}%): A=${itemNameById(selectedIdA)} → B=${itemNameById(selectedIdB)} → top "${imagePrediction[0].className.split(',')[0]}" (${(imagePrediction[0].probability * 100).toFixed(0)}%)${hiddenConcept ? `; emergent: ${hiddenConcept}` : ''}`
+            : textHasOutput
+              ? `Semantic blend (${(sliderValue * 100).toFixed(0)}%): "${conceptA}" → "${conceptB}" → "${textResults[0].word}" (${(textResults[0].score * 100).toFixed(0)}%)`
+              : null,
+        settings:
+            imageHasOutput || textHasOutput
+                ? { mode, position: Number(sliderValue.toFixed(2)) }
+                : undefined,
+    });
 
     const mainContent = (
         <div className="h-full flex flex-col">
