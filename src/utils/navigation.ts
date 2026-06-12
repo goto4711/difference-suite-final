@@ -14,11 +14,13 @@ import {
     Timer,
     Cog,
     MessageSquareWarning,
+    Users,
     type LucideIcon
 } from 'lucide-react';
 
 const MachineRoom = lazy(() => import('../components/machineRoom/MachineRoom'));
 const ContestationsPage = lazy(() => import('../components/contestation/ContestationsPage'));
+const WorkshopPage = lazy(() => import('../components/contestation/WorkshopPage'));
 const AmbiguityAmplifier = lazy(() => import('../components/tools/AmbiguityAmplifier/AmbiguityAmplifier'));
 const ContextWeaver = lazy(() => import('../components/tools/ContextWeaver/ContextWeaver'));
 const DeepVectorMirror = lazy(() => import('../components/tools/DeepVectorMirror/DeepVectorMirror'));
@@ -68,6 +70,13 @@ export const MAIN_MENU_EXTRAS: ToolDefinition[] = [
         icon: MessageSquareWarning,
         description: 'Your recorded dissent against tool outputs. Export as an evidence packet.',
         component: ContestationsPage,
+    },
+    {
+        path: '/workshop',
+        label: 'Workshop',
+        icon: Users,
+        description: 'Import packets from other participants. Make group disagreement visible.',
+        component: WorkshopPage,
     },
 ];
 
