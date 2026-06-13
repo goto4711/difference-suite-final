@@ -60,4 +60,6 @@ Three tools realise the project's *public things / beyond deep culture* dimensio
 
 These documents were written against the current source (`src/components/`, `src/stores/`, `src/core/inference/modelRegistry.ts`) in this `transf-js-4` build. Image classification uses **ResNet-50**; the Semantic Oracle uses **SmolLM2-135M-Instruct**; the **Visual Storyteller** is now a two-stage Florence-2 → SmolLM2 pipeline (literal caption then surreal retelling); the Imagination Inspector surfaces **real Stable Bias images via CLIP**. The three public-things tools (Machine Room, Contestations, Collaboration) run **no ML model** — they observe the engine and record/merge user dissent.
 
+For a technical backlog of proposed improvements across these tools, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
+
 See also: `../Difference_Suite___In_Depth_Technical_Overview.md`, `../Difference_Suite___Guided_Walkthrough_with_Test_Datasets.md`, `../What_It_Took_To_Make_Deep_Learning_Small.md`, and `../Large_Models_Suite.md`.
