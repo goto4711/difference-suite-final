@@ -1,443 +1,178 @@
 # Difference Suite — Guided Walkthrough with Test Datasets
 
-> **Live app**: [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app)  
+> **Live app**: [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app)
 > **Test data**: [`difference-suite-testdata/`](https://github.com/goto4711/difference-suite-final/tree/main/difference-suite-testdata)
+> **Last full rewrite**: June 2026 — covers the v4 architecture, the Machine Room, Contestations, and Collaboration.
+
+Everything in this walkthrough runs in your browser. Nothing you upload, type, or contest leaves your machine. The first time each tool loads its model you will see a download; after that, the tool works even with the network off (see the closing section on classroom preparation).
 
 ---
 
 ## Available Test Datasets
 
-Before starting, familiarise yourself with what's available:
-
 | Folder | Contents | Type | Best used for |
 |---|---|---|---|
-| `holocaust-texts/` | 10 numbered `.txt` files (`0001.txt` – `0327.txt`) | Text | Detail Extractor, Networked Narratives, Context Weaver, Semantic Oracle, Glitch Detector (text), Noise Predictor (text) |
-| `election-tweets-texts/` | 50 tweet files (`tweet_001.txt` – `tweet_050.txt`) | Text | Ambiguity Amplifier (text), Glitch Detector (text), Latent Navigator (text), Context Weaver, Threshold Adjuster |
-| `food_tweets/` | Tweet-style text files | Text | Glitch Detector (contrast corpus vs. election tweets), Ambiguity Amplifier |
-| `images/` | 11 animal JPEGs: cat, dog, eagle, elephant, grasshopper, octopus, owl, panda, squirrel, tiger, whale | Images | Ambiguity Amplifier (image), Glitch Detector (image), Latent Navigator (image), Visual Storyteller, Deep Vector Mirror, Imagination Inspector |
-| `visual_synapse_test/` | `golden_key.png` + `mystery_story.txt` | Mixed | Networked Narratives (Visual Synapse feature) |
-| `other/` | Miscellaneous files | Mixed | General testing |
-| `test/` | General test files | Mixed | General testing |
+| `holocaust-texts/` | numbered `.txt` files (`0001.txt` – `0327.txt`) | Text | Detail Extractor, Networked Narratives, Context Weaver, Glitch Detector (text), Noise Predictor (text) |
+| `election-tweets-texts/` | 50 tweet files (`tweet_001.txt` – `tweet_050.txt`) | Text | Ambiguity Amplifier (text), Glitch Detector (text), Latent Navigator (text), Threshold Adjuster |
+| `food_tweets/` | tweet-style text files | Text | Glitch Detector contrast corpus, Ambiguity Amplifier |
+| `images/` | 11 animal JPEGs (cat … whale) | Images | every image tool; the Glitch Detector training set |
+| `visual_synapse_test/` | `golden_key.png` + `mystery_story.txt` | Mixed | Networked Narratives (Visual Synapse) |
+| `other/`, `test/` | miscellaneous | Mixed | general testing |
+
+> **A note on the corpora.** The animal images are deliberately innocuous warm-up material. The Holocaust testimonies and election tweets are where the suite's questions become real: what does it mean for a classifier to call a testimony "anomalous", or for a threshold you chose to split political speech from noise? Move to them as soon as the mechanics feel familiar.
 
 ---
 
-## Step 0: Authentication & Setup
+## Step 0: Setup
 
-1. Go to [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app)
-2. Click **Log In** in the top-right header
-3. Enter a university email address (e.g. `yourname@uva.nl`, `yourname@ethz.ch`, or any `.edu` / `.ac.xx` address)
-4. The content will unblur and all tools become accessible
-
-> **Note:** This is a frontend-only soft gate — no password is required, only a valid academic domain.
-
----
+1. Open [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app).
+2. Click **Log In** (top right) and enter any academic email (`name@uva.nl`, `.edu`, `.ac.xx`…). This is a frontend-only soft gate — no password, no account. Your login and your data persist in this browser only.
+3. Note three permanent companions you will meet on every tool page:
+   - the **model status badge** (top right) — which models are in memory right now;
+   - the **Contest** button (appears beside it whenever the current tool has produced an output you might disagree with);
+   - the **"Show the machine's work"** bar (bottom of the screen) — a live, plain-language journal of what the machinery just did on this page.
 
 ## Step 1: Load the Data Dashboard
 
-Navigate to `/` (the home screen). You'll see:
-- **Visual Corpus** counter (images)
-- **Text Corpus** counter (documents)
-- **Other Data** counter (records)
-- An empty **Library** grid with a drag-and-drop zone
+On `/` you'll see counters for the Visual Corpus, Text Corpus and Other Data.
 
-### Load the animal images
+1. **Load the animal images**: drag the 11 JPEGs from `images/` into the uploader (or use the upload button).
+2. **Load the texts**: drag in `holocaust-texts/` and `election-tweets-texts/` files.
+3. **Create collections** in the sidebar — name them `images`, `holocaust-texts`, `election-tweets-texts`, `food_tweets` — and move each batch into its collection. Several tools (Glitch Detector, Detail Extractor) operate on *collections*, not loose items.
+4. Reload the page once. Everything survives: items, collections, and later your analysis results — persistence is local (your browser), by design.
 
-1. Open `difference-suite-testdata/images/` on your local machine
-2. Drag all 11 `.jpg` files onto the dashboard drop zone
-3. The Visual Corpus counter updates to **11 Images**
-4. Each image appears as a thumbnail in the grid
+## Step 2: The Machine Room — meet the machinery first
 
-### Load the holocaust texts
+Before any analysis, open **Machine Room** in the main menu. It will be nearly empty — that is the point. Keep it in mind; you will return after each tool to read what the machine *did*: which model it fetched, at what precision ("q4 — a quarter of the original precision; someone made this trade-off for you"), on which processor, what it evicted to make room, and what failed. The **Fragility** section counts crashes, fallbacks and timeouts for your session. Nothing here is hidden or embarrassing; this is the suite narrating its own decisions.
 
-1. Open `difference-suite-testdata/holocaust-texts/`
-2. Drag all 10 `.txt` files onto the dashboard
-3. Text Corpus counter updates to **10 Documents**
+## Step 3: Visual Storyteller — perception vs. imagination
 
-### Create collections
+1. Open **Visual Storyteller**, choose `whale.jpg`, press **Imagine a Story**.
+2. First run: watch the machine-work bar while Florence-2 (the big vision model) downloads.
 
-1. Click **+ New Collection** in the left sidebar
-2. Name it `"Holocaust Texts"` — move the 10 `.txt` files into it
-3. Create a second collection `"Animal Images"` — move the 11 images into it
+**What to observe.** Two outputs, deliberately distinct: under "— AI Imagination", a sampled, surreal micro-story; beneath it, "What the vision model saw" — the literal caption. The story changes on every run (sampling); the caption barely does. This is the suite's clearest staging of machine perception versus machine confabulation. If the story strikes you as erasing something the image plainly shows — press **Contest** in the header and say so.
 
-> **Tip:** Collections are how tools filter their working corpus. Organise before analysing.
+## Step 4: Ambiguity Amplifier — confidence at the borderline
 
----
+1. **Image mode**: select `cat.jpg`. ResNet-50 classifies it; the Confidence Spectrum shows the top labels.
+2. Raise the **Noise Level** slider in steps and re-observe.
+3. **Text mode**: paste an election tweet; amplify ambiguity in the embedding.
 
-## Step 2: Visual Storyteller — First Contact with Images
+**What to observe.** Confidence does not fade gracefully — it tips. Somewhere on the slider, the top-1 class flips while the image still looks unmistakably like a cat to you. The borderline is the object of study: classification is a cliff, not a slope.
 
-**Route:** `/visual-storyteller`  
-**Dataset:** `images/` (all 11 animal JPEGs)  
-**Model:** ViT-GPT2 (loads on first use — allow ~30s)
+## Step 5: Glitch Detector — whose normal?
 
-### Steps
+1. **Train**: pick the `images` collection as "Normal" and press **Train Model**. Watch it learn 11 patterns (each is a CLIP embedding — check the machine-work bar).
+2. **Test**: the tool auto-switches to Test mode. Test an image that was *in* the training set: ~100% normality, necessarily.
+3. Now upload one image that was **not** in the collection (any odd photograph) and test it. Move the **Sensitivity** slider and watch the verdict flip between normal and GLITCH.
+4. **Text mode**: train on `food_tweets`, test election tweets against it.
 
-1. Navigate to **Visual Storyteller** from the sidebar
-2. Wait for the model to load (progress indicator shown)
-3. Select `tiger.jpg` from your corpus — the tool generates a caption, e.g.:
-   > *"A tiger is standing in a grassy field"*
-4. Try `octopus.jpg` — observe how the model handles an unusual subject
-5. Try `grasshopper.jpg` — note any uncertainty or generic phrasing
+**What to observe.** The threshold is yours. There is no objectively correct sensitivity — which is precisely the point of the Probability→Doubt translation. Contest a verdict you disagree with (the Contest button captures the image, the score *and your threshold*); you will use that record in Step 18.
 
-### What to observe
-- The **Story History** panel (bottom) accumulates the last 10 captions
-- Compare how confidently the model describes familiar (dog, cat) vs. unusual (octopus, grasshopper) subjects
-- This demonstrates the model's **training distribution bias** — it is more fluent on common ImageNet-style subjects
+## Step 6: Latent Space Navigator — between categories
 
----
+1. Image mode: choose two animals (e.g. `cat.jpg` and `tiger.jpg`) and interpolate between them.
+2. Text mode: interpolate between two tweets.
 
-## Step 3: Ambiguity Amplifier — Classification Borderlines
+**What to observe.** The space *between* categories is populated and navigable. Identity, to the model, is a region with soft edges — the Identity→Ambiguity translation made walkable.
 
-**Route:** `/ambiguity-amplifier`  
-**Dataset A (image mode):** `images/` — focus on `owl.jpg`, `eagle.jpg`, `squirrel.jpg`  
-**Dataset B (text mode):** `election-tweets-texts/` vs. `food_tweets/`
+## Step 7: Context Weaver — meaning is positional
 
-### Image mode
+1. Select a Holocaust testimony; weave it against several contexts.
 
-1. Navigate to **Ambiguity Amplifier** → select **Image** mode
-2. Wait for ResNet-50 to load
-3. Select `owl.jpg` — observe the top-5 classification probabilities
-4. Select `eagle.jpg` — compare confidence scores
-5. Select `squirrel.jpg` — note if the model is uncertain between "squirrel" and "chipmunk" or similar
+**What to observe.** The same sentence sits at different distances from different contexts; the radial view shows meaning as relation rather than essence (Vector→Context).
 
-### Text mode
+## Step 8: Deep Vector Mirror — the vector itself
 
-1. Switch to **Text** mode
-2. Define **Concept A** as `"political"` and **Concept B** as `"food"`
-3. Load several `election-tweets-texts/tweet_001.txt` files as examples of Concept A
-4. Load several `food_tweets/` files as examples of Concept B
-5. Test borderline inputs — tweets that mention both food and politics
-6. The tool highlights **borderline cases** where confidence is near 50%
+1. Select `eagle.jpg`. Three things happen: the image renders, its CLIP embedding appears as a red/blue heatmap, and (for text inputs) the Attention Lens highlights tokens.
+2. Move the **Noise** and **Context Shift** sliders to perturb the vector and watch the heatmap respond.
 
-### What to observe
-- Borderline cases reveal where the model's decision boundary is drawn
-- The KNN classifier's uncertainty is a function of embedding proximity — not semantic meaning
+**What to observe.** This *is* the representation — a few hundred numbers; everything downstream is arithmetic on them. The heatmap is scaled robustly (CLIP has a couple of extreme outlier dimensions which would otherwise blacken everything else — itself a lesson in how unevenly meaning is distributed across a vector). The token view is labelled "Embedding similarity — real attention weights pending Transformers.js v4 support": read the label, it is telling you the truth about a placeholder.
 
----
+## Step 9: Detail Extractor — outliers in the archive
 
-## Step 4: Glitch Detector — Finding Classifier Confusion
+1. Point it at the `holocaust-texts` collection; let it embed and cluster.
 
-**Route:** `/glitch-detector`  
-**Dataset:** `images/` (image mode) or `election-tweets-texts/` + `food_tweets/` (text mode)
+**What to observe.** What clusters together, and what is left stranded? The stranded items are the tool's gift: Detail→Narrative means the outlier is a story, not an error.
 
-### Image mode
+## Step 10: Networked Narratives — entities and synapses
 
-1. Navigate to **Glitch Detector** → **Image** mode
-2. **Train Phase:** Assign images to two classes:
-   - Class A `"predator"`: tiger, eagle, owl
-   - Class B `"non-predator"`: panda, whale, grasshopper
-3. Click **Train Classifier**
-4. **Test Phase:** Upload `squirrel.jpg` or `octopus.jpg` — these are the ambiguous cases
-5. Observe the confidence score — low confidence = a **glitch**
+1. **Part A**: build an entity graph from the Holocaust texts; explore who/where/what is connected.
+2. **Part B**: Visual Synapse — add `golden_key.png` and `mystery_story.txt` from `visual_synapse_test/` and watch the image attach itself to the narrative graph via CLIP.
 
-### Text mode
+**What to observe.** The graph is a *machine* reading; names the NLP misses or merges are absences worth contesting.
 
-1. Switch to **Text** mode
-2. Train on `election-tweets-texts/` (Class A: `"political"`) and `food_tweets/` (Class B: `"food"`)
-3. Test with a tweet that discusses a political dinner or food policy
-4. Observe which tweets score near 50% — these are the model's **glitches**
+## Step 11: Noise Predictor — what the model forgets
 
-### What to observe
-- Glitches are not errors — they reveal the **limits of the model's categorical logic**
-- The tool makes visible what the model cannot cleanly separate
+1. Image mode: select an animal image, **Process**, then **Train** (a small autoencoder trains live in your browser — watch the loss fall over 50 epochs).
+2. Read the three panels: Original → Reconstructed → Residual Noise (amplified for visibility).
 
----
+**What to observe.** The reconstruction is soft and imperfect *by design* — the network squeezed the image through a narrow bottleneck and kept only what it could. The residual panel shows everything it discarded: the model's definition of "noise", which on a photograph of a face or an archive page is never culturally neutral.
 
-## Step 5: Latent Space Navigator — Between Categories
+## Step 12: Semantic Oracle — a small intelligence you can corner
 
-**Route:** `/latent-navigator`  
-**Dataset:** `images/` (image mode) or `election-tweets-texts/` (text mode)
+1. Type a concept (`difference`, `archive`, `memory`) and try the three modes: Define / Expand / Tangent.
 
-### Image mode
+**What to observe.** SmolLM2 has 135 million parameters — a thousandth of the commercial systems — and it shows: confident, fluent, frequently wrong. That is its pedagogical value. It is small enough to corner, interrogate and contest. (The suite's first ever recorded contestation was filed against this tool's definition of "archive".)
 
-1. Navigate to **Latent Navigator** → **Image** mode
-2. Set **Start** category: `cat` (upload `cat.jpg`)
-3. Set **End** category: `tiger` (upload `tiger.jpg`)
-4. Click **Navigate** — the tool interpolates through ResNet-50's feature space
-5. Observe the intermediate "hidden concepts" generated along the path
+## Step 13: Imagination Inspector — generative bias, with the instrument disclosed
 
-### Text mode
+1. Type or pick a profession (`doctor`, `CEO`, `janitor`) and run it.
+2. The tool fetches **real** Stable Diffusion / DALL-E outputs for that profession from the Stable Bias research corpus and classifies each face locally with CLIP.
+3. Read each card's tags — note they say **"CLIP-perceived"** gender/race/age, that some read *≈ ambiguous*, and that hovering shows the top-2 readings with percentages ("female 54% / male 46%").
+4. Read **The Void Report**: bars for what is present, dashed VOID bars for what the generators never imagined, and an *ambiguous* count for where the measuring instrument itself hesitated.
+5. Try the **Adjective** toggle (a *confident* CEO vs. a *gentle* CEO) — a controlled experiment over the corpus.
+6. Try a profession that isn't in the archive (`astronaut chef`): you get an honest empty state with suggestions, not fabricated data.
 
-1. Switch to **Text** mode
-2. Set **Concept A**: `"democracy"` — paste text from `tweet_001.txt`
-3. Set **Concept B**: `"authoritarian"` — paste text from a contrasting tweet
-4. Navigate the semantic space between them
-5. Observe what concepts appear at the midpoint — these are the **latent in-between spaces**
+**What to observe.** Two layers of bias at once: the generators' (who appears as "doctor"?) and the classifier's (what does CLIP think a "female" face looks like — and when does it hesitate?). The disclosure panel says it plainly: these readings are made by another AI and are contestable. Contest one.
 
-### What to observe
-- The interpolation path reveals what the model "thinks" lies between two categories
-- Unexpected midpoint concepts expose the model's internal geometry
+## Step 14: Threshold Adjuster — doubt as a slider
 
----
+Classify a small set of tweets, then drag the decision threshold and watch items flip class. Pair it with the Glitch Detector for the full Probability→Doubt argument.
 
-## Step 6: Context Weaver — Multi-Context Mapping
+## Step 15: Depth Mirror, Discontinuity Detector, Deep Time
 
-**Route:** `/context-weaver`  
-**Dataset:** `holocaust-texts/` (all 10 documents)
+- **Depth Mirror**: depth estimation on the animal images — where does the model's spatial belief fail?
+- **Discontinuity Detector**: anomalies in time-series as moments of contingency rather than error.
+- **Deep Time**: three sub-views (Attention Lens, Diffusion Scrubber, Memory Audit) on temporality and machine memory — bring a long testimony.
 
-### Steps
+## Step 16: Contest as you go
 
-1. Navigate to **Context Weaver**
-2. Load all 10 holocaust texts into the tool's corpus
-3. Define three contexts:
-   - Context 1: `"survival and resistance"`
-   - Context 2: `"persecution and violence"`
-   - Context 3: `"memory and testimony"`
-4. Select individual documents and observe their **radial position** across the three contexts
-5. Compare `0001.txt` vs `0327.txt` — do they cluster differently?
+By now you should have three or four contestations. Open **Contestations** in the main menu: every record carries your note, its category, the contested output, and the settings that produced it — all stored only in your browser. **Export** produces a JSON packet (for the next step) and a printable HTML evidence packet (for a seminar discussion or coursework appendix).
 
-### What to observe
-- The radial D3 visualization shows each document's cosine similarity to each context
-- Documents that sit equidistant between contexts are semantically **ambiguous** — they resist easy categorisation
-- This is the tool's core humanities insight: texts are not mono-contextual
+## Step 17: Collaboration — disagreement made visible
 
----
+In a group setting (or solo, by exporting twice under different initials):
 
-## Step 7: Deep Vector Mirror — Attention & Vectors
+1. Everyone exports their contestation packet (JSON) with their initials.
+2. One person opens **Collaboration** and drags all packets in.
+3. Read the **threshold spread**: every participant's Glitch Detector sensitivity on a single axis — the group's disagreement about where "glitch" begins, in one picture. There is no correct dot.
+4. Read the **tool × participant matrix**: where did this group's friction concentrate?
+5. Export the combined packet as the session's collective record.
 
-**Route:** `/deep-vector-mirror`  
-**Dataset:** `holocaust-texts/` (individual documents)
+Imports live in memory only — a collaboration is an encounter, not a database.
 
-### Steps
+## Step 18: The offline finale
 
-1. Navigate to **Deep Vector Mirror**
-2. Select `0001.txt` from your corpus
-3. **Attention Lens mode:** The tool visualises which tokens the model attends to most strongly
-   - Look for which words receive high attention weights
-   - Compare with `0082.txt` — does the attention pattern shift?
-4. **Heatmap mode:** View the full embedding as a structured heatmap
-5. **Distance Matrix:** Load 3–4 documents and compare their pairwise cosine distances
+1. With everything above done at least once, open DevTools → Network and set **Offline** (or simply kill the Wi-Fi).
+2. Reload. The suite returns. Run the Semantic Oracle again. It answers.
 
-### What to observe
-- Attention weights reveal the model's internal prioritisation — not necessarily the most humanly meaningful words
-- The distance matrix shows which texts the model considers semantically similar
-- Texts that humans consider thematically related may be far apart in vector space — and vice versa
-
----
-
-## Step 8: Detail Extractor — Outliers in the Archive
-
-**Route:** `/detail-extractor`  
-**Dataset:** `holocaust-texts/` (all 10 documents)
-
-### Steps
-
-1. Navigate to **Detail Extractor**
-2. Load all 10 holocaust texts
-3. Run the clustering — the tool groups semantically similar documents
-4. Observe which documents are **outliers** — placed far from any cluster centroid
-5. Read the highlighted "unique details" — passages the model flags as semantically isolated
-
-### What to observe
-- Outlier documents often contain the most historically specific or unusual content
-- The tool operationalises the humanities concept of the **marginal detail** — what resists generalisation
-- This is the tool most directly tied to the project's Holocaust research focus
-
----
-
-## Step 9: Networked Narratives — Entity Graphs + Visual Synapse
-
-**Route:** `/networked-narratives`  
-**Dataset A:** `holocaust-texts/` (text) + `images/` (for visual synapse)  
-**Dataset B:** `visual_synapse_test/` (`mystery_story.txt` + `golden_key.png`)
-
-### Part A — Entity graph from holocaust texts
-
-1. Navigate to **Networked Narratives**
-2. Load `0001.txt` or `0082.txt`
-3. Compromise.js extracts entities: people, places, organisations
-4. A force-directed graph renders the relationships between entities
-5. Observe which entities are most central (highest degree)
-
-### Part B — Visual Synapse test
-
-1. Load `visual_synapse_test/mystery_story.txt` into the corpus
-2. Also load `visual_synapse_test/golden_key.png` into the image corpus
-3. Run the entity extraction on `mystery_story.txt`
-4. Activate **Visual Synapse** — CLIP will attempt to match extracted text entities to `golden_key.png`
-5. Observe which text entities align with the image via CLIP's multimodal embedding space
-
-### What to observe
-- The visual synapse creates **cross-modal connections** — text concepts linked to visual evidence
-- This is the tool's most technically complex feature, combining NLP + CLIP in a single pipeline
-
----
-
-## Step 10: Noise Predictor — What the Model Forgets
-
-**Route:** `/noise-predictor`  
-**Dataset:** `holocaust-texts/` (text mode) or `images/` (image mode)
-
-### Text mode
-
-1. Navigate to **Noise Predictor** → **Text** mode
-2. Load `0001.txt` — the tool embeds it via `bge-small-en-v1.5`
-3. The autoencoder compresses and reconstructs the embedding
-4. The **residual heatmap** shows the difference: original − reconstructed
-5. Repeat with `0327.txt` — compare the residual patterns
-
-### Image mode
-
-1. Switch to **Image** mode
-2. Load `panda.jpg` — the autoencoder compresses and reconstructs the image features
-3. Compare the residual with `grasshopper.jpg`
-
-### What to observe
-- High residual values = information the model **cannot reconstruct** through the bottleneck
-- This is what the model "forgets" — semantically or visually marginal information
-- Texts with high residuals are the ones that resist compression into the model's learned representation
-
----
-
-## Step 11: Semantic Oracle — Concept Exploration
-
-**Route:** `/semantic-oracle`  
-**Dataset:** `holocaust-texts/` (as contextual corpus)  
-**Model:** SmolLM2-135M-Instruct (loads on first use — allow ~30–60s)
-
-### Steps
-
-1. Navigate to **Semantic Oracle**
-2. Wait for the model to load (significant download on first use)
-3. Load the holocaust texts as your contextual corpus
-4. Try the three modes with the concept `"resistance"`:
-   - **Define:** *"What is resistance?"* — the model gives a clear definition
-   - **Expand:** *"What concepts are related to resistance?"* — surfaces hidden connections
-   - **Tangent:** *"Give me a metaphor for resistance"* — generates creative/abstract output
-5. Repeat with `"testimony"` and `"silence"`
-
-### What to observe
-- The **Tangent** mode is the most revealing — it shows how the model's generative imagination works
-- Compare the model's definition of "resistance" with how the word appears in the holocaust texts
-- The Oracle runs entirely locally — no data leaves the browser
-
----
-
-## Step 12: Imagination Inspector — Generative Bias
-
-**Route:** `/imagination-inspector`  
-**Dataset:** `images/` (as grounding corpus for Dataset Alignment sidebar)
-
-### Steps
-
-1. Navigate to **Imagination Inspector**
-2. Load all 11 animal images as your visual corpus (these populate the Dataset Alignment sidebar)
-3. Enter a profession prompt: `"doctor"` — the tool fetches real Stable Diffusion images from the **Stable Bias** dataset
-4. Observe the 5 images returned — each with a different randomly selected adjective (e.g. "ambitious doctor", "confident doctor") in the default **Varied** mode
-5. Hover over each image to inspect CLIP-classified demographic tags (Gender, Race, Age, Setting)
-6. Check the **Void Report** — it highlights demographics that are absent from the model's outputs
-7. Try `"nurse"` and compare the demographic distribution vs. `"CEO"`
-8. Try `"software developer"` — note the gender skew in the Void Report
-9. Switch the **Adjective** toggle to **Fixed** and select `"no_adjective"` (neutral baseline) — this removes adjective influence and surfaces raw profession-level bias
-10. Switch to a different fixed adjective (e.g. `"compassionate"`) and compare how the demographic distribution shifts
-11. Try a non-profession prompt like `"a dangerous animal"` — this falls back to SmolLM2 text simulation
-
-### What to observe
-- The **Void Report** highlights what the model's imagination systematically excludes (e.g. "female" absent for certain professions)
-- Different professions show dramatically different demographic skews — this is the dataset's core finding
-- CLIP's **Dataset Alignment** (sidebar) reveals semantic associations between the prompt and your loaded images
-- Use **Fixed adjective mode** with `"no_adjective"` to isolate raw profession-level bias; switch adjectives to see how prompt modifiers shift demographic distributions
-- SmolLM2 fallback for non-profession prompts produces text-only simulation with no real images
-
----
-
-## Step 13: Threshold Adjuster — Decision Boundaries
-
-**Route:** `/threshold-adjuster`  
-**Dataset:** `election-tweets-texts/` (pre-scored or use output from Glitch Detector)
-
-### Steps
-
-1. Navigate to **Threshold Adjuster**
-2. Load scored data from the election tweets (or use the classification scores from Glitch Detector)
-3. The histogram shows the distribution of confidence scores across all 50 tweets
-4. Move the **threshold slider** from 0.5 to 0.7
-5. Observe how the "approved/rejected" split changes
-6. Find the threshold at which the most borderline tweets flip classification
-
-### What to observe
-- The histogram reveals whether the score distribution is bimodal (clear separation) or flat (ambiguous corpus)
-- Borderline cases near the threshold are the most politically and semantically contested tweets
-- This tool makes the **arbitrariness of classification thresholds** visible and interactive
-
----
-
-## Step 14: Deep Time — Algorithmic Time
-
-**Route:** `/deep-time`  
-**Dataset:** `holocaust-texts/` (text mode) or `images/` (image mode)
-
-### Attention Lens (Text)
-
-1. Navigate to **Deep Time**
-2. The default view is **Attention Lens**.
-3. Load `0001.txt` from the suite corpus.
-4. Experiment with the **Memory decay rate (λ)** slider.
-5. Observe how adjusting the causal memory prior forces the attention matrix to "forget" tokens further back in the sequence, restoring a human-like degradation to the otherwise flat geometry of the transformer.
-
-### Diffusion Scrubber (Image)
-
-1. Switch to the **Module: Diffusion Scrubber** tab natively at the top of the interface.
-2. Load `cat.jpg` from the suite corpus (or Drag and Drop).
-3. Use the timestep slider to inject mathematical forward-process noise (t=0 to 999).
-4. Observe the structured degradation of the image as the signal-to-noise ratio inverts.
-
-### Memory Audit (Text/Timeseries)
-
-1. Switch to the **Module: Memory Audit** tab.
-2. Load `0327.txt` to populate the event timeline.
-3. Choose a Hidden Dimension Size (e.g. 32) and click **Run Analysis**.
-4. Observe the pure-JS Backpropagation charts showing how gradients vanish over long sequences for Vanilla RNNs versus LSTMs.
-
-### What to observe
-- These tools operate almost entirely synthetically using pure conceptual mathematics rather than loading large model weights.
-- It exposes how AI handles *time*: flattening it into space (attention), destroying it via entropy (diffusion), or losing it iteratively (vanishing gradients).
+Everything — interface, inference engine, every model you used — is now on your machine. This is what "local-first" means, demonstrated rather than claimed.
 
 ---
 
 ## Suggested Workflows by Research Question
 
-### "How does AI categorise historical testimony?"
-1. Load `holocaust-texts/` → **Detail Extractor** (find outliers)
-2. → **Context Weaver** (map across survival / persecution / memory)
-3. → **Deep Vector Mirror** (inspect attention patterns)
-4. → **Semantic Oracle** (expand concept of "testimony")
+- **"How does AI categorise historical testimony?"** — Steps 1, 9, 10, 7, then Glitch Detector text mode trained on `food_tweets` and tested on testimonies; contest the verdicts.
+- **"What does AI see in images?"** — Steps 3, 4, 8, 11, 15 (Depth Mirror).
+- **"Where is the line between political and non-political speech?"** — Ambiguity Amplifier (text), Threshold Adjuster, Glitch Detector with tweet corpora; finish with the Collaboration threshold spread.
+- **"What does AI forget?"** — Noise Predictor on images and text; Detail Extractor outliers; the Void Report.
+- **"What did the machine decide for me today?"** — any three tools, then the Machine Room journal, end to end.
 
-### "What does AI see in images?"
-1. Load `images/` → **Visual Storyteller** (generate captions)
-2. → **Ambiguity Amplifier** (find low-confidence classifications)
-3. → **Imagination Inspector** (test profession prompts against Stable Bias dataset)
-4. → **Latent Navigator** (interpolate between animal categories)
+## Classroom Preparation Notes
 
-### "How does AI draw the line between political and non-political speech?"
-1. Load `election-tweets-texts/` + `food_tweets/` → **Glitch Detector** (train classifier)
-2. → **Ambiguity Amplifier** (find borderline tweets)
-3. → **Threshold Adjuster** (explore decision boundary sensitivity)
-4. → **Latent Navigator** (navigate the semantic space between the two corpora)
-
-### "What does AI forget?"
-1. Load `holocaust-texts/` → **Noise Predictor** (residual analysis)
-2. → **Detail Extractor** (outlier detection)
-3. → **Deep Vector Mirror** (distance matrix — what is far from what)
-
-### "How do text and image relate in AI space?"
-1. Load `visual_synapse_test/` → **Networked Narratives** (Visual Synapse)
-2. Load `images/` + `holocaust-texts/` → **Imagination Inspector** (Stable Bias images + CLIP demographic classification)
-3. → **Context Weaver** (cross-modal context mapping)
-
----
-
-## Performance Notes
-
-| Tool | Model load time (first use) | Processing time per item |
-|---|---|---|
-| Visual Storyteller | ~30s (ViT-GPT2) | ~5s per image |
-| Semantic Oracle | ~30–60s (SmolLM2-135M-Instruct) | ~5–10s per query |
-| Ambiguity Amplifier | ~10s (ResNet-50) | ~1s per item |
-| Glitch Detector | ~10s (ResNet-50/BGE) | ~2s per item |
-| Context Weaver | ~15s (BGE) | ~2s per item |
-| Networked Narratives | ~5s (Compromise.js) + ~20s (CLIP) | ~3s per text |
-| Noise Predictor | ~15s (TF.js autoencoder) | ~5s per item |
-| Deep Vector Mirror | ~15s (BGE) | ~2s per item |
-
-> All models run locally in-browser via WebGPU/WASM. **No data is sent to any server.**  
-> First load downloads model weights; subsequent uses are cached.
+- **Preload while online**: have students click through every tool you plan to use at the start of the session — each first use downloads its model (100–400 MB for the heavier ones). After that, the session survives any Wi-Fi.
+- **First load of Florence-2 / Visual Storyteller** is the longest single download; start it first.
+- The model badge shows what is in memory; the suite holds at most three models and evicts the least recently used — the Machine Room narrates every eviction.
+- If a tool ever errors with "model execution wedged": that is the watchdog doing its job. Reload the page; the Fragility counter will remember, and that, too, is teaching material.
+- The suite is installable (browser "Install app" prompt) for a kiosk-like setup.

@@ -1,513 +1,184 @@
 # Difference Suite — In-Depth Technical Overview
 
-> **Project**: DEEP CULTURE ERC Advanced Grant — "Little Tool of Difference"  
-> **Version**: 0.0.0 | **Deployed**: [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app)  
+> **Project**: DEEP CULTURE ERC Advanced Grant — "Little Tool of Difference"
+> **Live app**: [difference-suite-final.vercel.app](https://difference-suite-final.vercel.app)
 > **Repository**: [github.com/goto4711/difference-suite-final](https://github.com/goto4711/difference-suite-final)
+> **Status**: Transformers.js v4 architecture · installable PWA · fully local inference
+> **Last full rewrite**: June 2026 (supersedes all earlier versions of this document)
 
 ---
 
 ## 1. What Is It?
 
-The **Difference Suite** is a fully client-side React web application designed for digital humanities researchers. It operationalises critical humanities concepts — such as algorithmic ambiguity, latent space, and generative bias — into 14 interactive deep learning analysis tools. All ML inference runs in the browser using WebGPU/WASM; no data leaves the user's machine.
+The Difference Suite is a fully client-side web application that operationalises critical humanities concepts — ambiguity, latent space, generative bias, algorithmic doubt — into fifteen interactive deep learning tools, plus three "engine room" pages that make the machinery itself inspectable and contestable. All machine learning runs in the user's browser via WebAssembly and WebGPU. No data ever leaves the machine: there is no inference server, no telemetry, and after one online visit the entire suite (interface, inference engine, and any models already used) works offline.
 
-**Target users:**
-- Digital humanities researchers
-- Cultural studies scholars
-- Holocaust and archive specialists
-- AI ethics researchers
-- Students and educators at academic institutions
+The suite implements the project's pathway from a *deep culture of uniformity* to *deep cultures of difference*: each tool enacts one of the project's keyword translations (Profile→Narrative, Vector→Context, Anomaly→Contingency, Bias→Ambiguity, Generativity→Creativity, Probability→Doubt), while the engine-room pages implement the suite's reflexive layer — the machine narrating its own decisions (Machine Room) and users dissenting from its outputs on the record (Contestations, Collaboration).
 
----
+**Target users:** students and educators in AI-literacy settings, digital humanities researchers, cultural studies scholars, workshop publics. No installation, account, or coding required.
 
 ## 2. Technology Stack
 
-### 2.1 Core Framework
+### 2.1 Core framework
 
-| Category | Technology | Version |
-|---|---|---|
-| Frontend | React + TypeScript | 19.2.0 / ~5.9.3 |
-| Build tool | Vite (rolldown-vite fork) | 7.2.5 |
-| Styling | Tailwind CSS + PostCSS | 4.1.17 |
-| State management | Zustand | 5.0.9 |
-| Routing | React Router DOM | 7.10.0 |
-| Animation | Framer Motion | 12.23.25 |
-
-### 2.2 AI / ML Libraries
-
-**Transformers.js Stack** — primary engine for 10/14 tools:
-- `@huggingface/transformers` ^3.8.1 — browser-native Hugging Face models via WebGPU/WASM
-
-**Models used:**
-| Model | Used by |
+| Category | Technology |
 |---|---|
-| `bge-small-en-v1.5` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor, Detail Extractor |
-| `SmolLM2-135M-Instruct` | Semantic Oracle (generative text) |
-| `Florence-2-Base-ft` | Visual Storyteller (image captioning) |
-| `whisper-tiny.en` | Audio capture / transcription |
-| `CLIP` | Imagination Inspector (zero-shot demographic classification, dataset alignment), Networked Narratives (multimodal alignment) |
-
-**TensorFlow.js Stack:**
-| Library | Version | Used by |
-|---|---|---|
-| `@tensorflow/tfjs` | ^4.22.0 | Noise Predictor, Discontinuity Detector (custom training) |
-| `@tensorflow-models/knn-classifier` | ^1.2.6 | Ambiguity Amplifier, Glitch Detector |
-
-### 2.3 Visualization Libraries
-
-| Library | Version | Purpose |
-|---|---|---|
-| D3.js | ^7.9.0 | Custom data-driven visualizations |
-| Recharts | ^3.5.1 | React charting (histograms, line charts) |
-| react-force-graph-2d | ^1.29.0 | Force-directed network graphs |
-
-### 2.4 NLP
-
-- `compromise` ^14.14.4 — lightweight NLP for entity extraction (people, places, orgs)
-- `bge-small-en-v1.5` — semantic embeddings and document clustering
-
----
-
-## 3. Application Architecture
-
-### 3.1 Component Hierarchy
-
-```
-App.tsx
-└── BrowserRouter
-    └── MainLayout
-        ├── Sidebar          ← Tool navigation
-        ├── Header           ← Auth + stats
-        ├── StatsRow         ← Corpus counts
-        └── AuthGuard
-            └── Routes
-                ├── /              → Dashboard
-                │   ├── CollectionSidebar
-                │   ├── DataGrid
-                │   └── ContextPanel
-                └── /<tool-route>  → ToolComponent
-                    └── ToolLayout
-                        ├── Main Content
-                        └── Side Controls
-```
-
-### 3.2 Routing Table
-
-| Route | Component | Description |
-|---|---|---|
-| `/` | Dashboard | Data management home |
-| `/machine-room` | MachineRoom | Inference-layer event journal — what loaded, evicted, fell back |
-| `/contestations` | ContestationsPage | Ledger of recorded dissent; export evidence packets (JSON/HTML) |
-| `/collaboration` | CollaborationPage | Import packets from multiple participants; visualise group divergence |
-| `/ambiguity-amplifier` | AmbiguityAmplifier | Classification ambiguity |
-| `/context-weaver` | ContextWeaver | Cross-context semantic comparison |
-| `/deep-time` | DeepTime | Explore generative constraints and temporal decay |
-| `/deep-vector-mirror` | DeepVectorMirror | Vector representation visualization |
-| `/detail-extractor` | DetailExtractor | Text clustering + outlier detection |
-| `/discontinuity-detector` | DiscontinuityDetector | Time-series anomaly detection |
-| `/glitch-detector` | GlitchDetector | Classifier confusion detection |
-| `/imagination-inspector` | ImaginationInspector | Generative AI bias exploration |
-| `/latent-navigator` | LatentSpaceNavigator | Latent space interpolation |
-| `/networked-narratives` | NetworkedNarratives | NLP entity graph visualization |
-| `/noise-predictor` | NoisePredictor | Autoencoder noise/residual analysis |
-| `/threshold-adjuster` | ThresholdAdjuster | Decision threshold sensitivity |
-| `/semantic-oracle` | SemanticOracle | Local generative text intelligence |
-| `/visual-storyteller` | VisualStoryteller | AI image captioning |
-
-### 3.3 Global State (Zustand)
-
-Single store in `src/stores/suiteStore.ts`:
-
-```typescript
-interface SuiteState {
-  // Data
-  dataset: DataItem[];           // All uploaded items
-  collections: Collection[];     // Named item groups
-  activeItem: string | null;     // Currently focused item
-  selectedItems: string[];       // Multi-selection
-  isProcessing: boolean;
-
-  // Auth
-  isAuthenticated: boolean;
-  userEmail: string | null;
-
-  // Actions
-  addItem / addItems / removeItem
-  createCollection
-  moveItemsToCollection
-  toggleSelection
-  updateItemResult(itemId, toolId, result)
-  login / logout / clearDataset
-}
-```
-
-### 3.4 Core Data Types
-
-```typescript
-type DataType = 'image' | 'text' | 'timeseries' | 'tabular' | 'audio';
-
-interface DataItem {
-  id: string;
-  name: string;
-  type: DataType;
-  collectionId?: string;
-  content: string | File;       // URL or raw text
-  rawFile?: File;
-  metadata?: { size, lastModified, mimeType };
-  embedding?: number[];         // Computed vector
-  analysisResults?: Record<string, any>;
-}
-```
-
----
-
-## 4. Data Flow Patterns
-
-### 4.1 File Upload Flow
-
-```
-User drag-drops files
-  → Dashboard (react-dropzone)
-    → FileReader reads content
-    → MIME type detection (image / text / csv)
-    → suiteStore.addItems(newItems)
-      → DataGrid re-renders
-```
-
-### 4.2 Tool Analysis Flow
-
-```
-User selects item
-  → Tool reads suiteStore.activeItem
-    → ML model processes item.content
-      → Results returned to component
-        → suiteStore.updateItemResult(itemId, toolId, result)
-          → Visualization rendered
-```
-
-### 4.3 ML Model Loading Pattern
-
-All tools use a lazy singleton pattern:
-```typescript
-const [modelReady, setModelReady] = useState(false);
-useEffect(() => {
-  modelManager.init().then(() => setModelReady(true));
-}, []);
-```
-Models are loaded once on first tool access and cached for the session.
-
----
-
-## 5. Authentication System
-
-### 5.1 "Soft Gate" — Domain-Based Academic Access
-
-```typescript
-// src/config/authConfig.ts
-const ACADEMIC_REGEX = /(.edu(.[a-z]{2})?|.ac.[a-z]{2})$/i;
-const ALLOWED_DOMAINS = ['uva.nl', 'ethz.ch', 'tsinghua.edu.cn', ...]; // 40+ universities
-
-function checkDomain(email: string): boolean {
-  const domain = email.split('@')[1].toLowerCase();
-  return ALLOWED_DOMAINS.includes(domain) || ACADEMIC_REGEX.test(domain);
-}
-```
-
-### 5.2 AuthGuard Behaviour
-
-When unauthenticated:
-- Content blurred with `blur-md` CSS filter
-- "Restricted Access" overlay displayed
-- Pointer events disabled
-
-**Note:** This is a frontend-only soft gate — no server-side enforcement.
-
----
-
-## 6. The 14 Tools — In-Depth
-
----
-
-### Tool 1: Ambiguity Amplifier
-**Route:** `/ambiguity-amplifier`  
-**Purpose:** Surfaces classification ambiguity in image and text predictions.
-
-**How it works:**
-- **Image mode:** Uses ResNet-50 (via TransformersClient). Runs classification and highlights low-confidence predictions.
-- **Text mode:** Embeds text using `bge-small-en-v1.5` (Transformers.js), then uses a KNN classifier to categorise input between two user-defined concepts.
-- Highlights "borderline" cases where the model confidence is near 50%.
-
-**Key dependencies:** `@tensorflow-models/knn-classifier`, `@huggingface/transformers`
-
----
-
-### Tool 2: Context Weaver
-**Route:** `/context-weaver`  
-**Purpose:** Maps data items across different semantic and cultural contexts.
-
-**How it works:**
-- Embeds collection items using `bge-small-en-v1.5`.
-- Computes cosine similarity between a query (text or image) and multiple user-defined "contexts".
-- Renders a **radial D3 visualization** showing the relative position of items across contexts.
-- Enables multi-contextual comparison of the same data item.
-
-**Key dependencies:** `@huggingface/transformers` (bge-small-en-v1.5), D3.js
-
----
-
-### Tool 3: Deep Vector Mirror
-**Route:** `/deep-vector-mirror`  
-**Purpose:** Visualizes the high-dimensional vector representations used by deep learning models.
-
-**How it works:**
-- **Attention Lens:** Extracts and visualizes attention weights from text inputs via Transformers.js — shows which tokens the model prioritizes.
-- **Multimodal Vector Analysis:** Renders image and text vectors as structured heatmaps and distance matrices.
-- **Vector Arithmetic:** Enables exploration of cosine distance between vectors.
-
-**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers`, D3.js
-
----
-
-### Tool 4: Deep Time
-**Route:** `/deep-time`  
-**Purpose:** Explores the mathematical constraints of temporal processing in neural networks.
-
-**How it works:**
-- **Attention Lens:** Simulates the causal masking and attention decay of transformers.
-- **Diffusion Scrubber:** Visualizes the mathematically scheduled forward-diffusion noise process on images.
-- **Memory Audit:** Runs pure JS backpropagation through time to expose the vanishing gradient problem in RNNs and LSTMs.
-- Operates entirely on pure mathematics to reveal algorithmic structures without heavy inference dependencies.
-
-**Key dependencies:** `plotly.js-dist-min`
-
----
-
-### Tool 4: Detail Extractor
-**Route:** `/detail-extractor`  
-**Purpose:** Clusters texts and extracts marginal details, with a Holocaust research focus.
-
-**How it works:**
-- Processes texts via `bge-small-en-v1.5` to generate embeddings.
-- Clusters semantically similar documents.
-- Highlights **outliers and unique details** that fall outside dominant clusters.
-- Demo texts focus on Holocaust resistance narratives.
-
----
-
-### Tool 5: Discontinuity Detector
-**Route:** `/discontinuity-detector`  
-**Purpose:** Detects anomalies in time-series data.
-
-**How it works:**
-- Parses CSV/JSON time-series data.
-- Uses deep anomaly detection algorithms (TensorFlow.js).
-- Visualizes a timeline with anomaly markers.
-- Provides an anomaly inspector panel for detailed inspection.
-
-**Key dependencies:** `@tensorflow/tfjs`, Recharts
-
----
-
-### Tool 6: Glitch Detector
-**Route:** `/glitch-detector`  
-**Purpose:** Identifies inputs that confuse trained classifiers ("glitches").
-
-**How it works:**
-- **Image mode:** ResNet-50 + KNN classifier trained on user collections.
-- **Text mode:** `bge-small-en-v1.5` embeddings + KNN classifier.
-- Trains the classifier on labeled collections, then tests new inputs.
-- Highlights items with low confidence or misclassification — the "glitches".
-
-**Key dependencies:** `@tensorflow-models/knn-classifier`, `@huggingface/transformers`
-
----
-
-### Tool 7: Imagination Inspector
-**Route:** `/imagination-inspector`  
-**Purpose:** Explores the boundaries and biases of generative AI imagination by surfacing real Stable Diffusion outputs for professional archetypes — while making the measurement instrument's own uncertainty visible.
-
-**How it works:**
-- Fetches real AI-generated images from the **Stable Bias dataset** (`stable-bias/professions` on HuggingFace, CC BY-SA 4.0) — 94,500 images across 146 professions, generated by Stable Diffusion v1.4/v2 and DALL-E 2.
-- Classifies each image's demographics (gender, race, age, setting) via **CLIP zero-shot classification** — one batched call per image across all categories. Categories are labelled "**CLIP-perceived** gender/race/age/setting" to surface the instrument: these are machine perceptions of CLIP, not facts about the people depicted (who do not exist).
-- **Ambiguity as a real outcome.** A softmax + top-2 margin is computed per category. When the margin falls below `AMBIGUITY_MARGIN` (0.15) the label is reported as `ambiguous` instead of forcing the argmax. Each card stores the full per-category `tagDetails` (label, runner-up, margin, probabilities); the grid hover overlay shows a per-tag confidence bar and a tooltip with the top-2 labels and their percentages.
-- Analyzes bias in the classified tags via a custom `BiasAnalyzer`. `ambiguous` is counted as a present tag and listed as VOID when no classification in that category was ambiguous.
-- Generates **"Void Reports"** (absence reports) highlighting demographics that exist in reality but are absent from the model's output.
-- Card tints are **confidence-keyed**, never gender-keyed. High classification confidence shows a saturated brand tint; low / ambiguous classifications fade to neutral grey.
-- Uses **CLIP multimodal alignment** to match prompts to user dataset images (Dataset Alignment sidebar).
-- For prompts that don't match the 146 known professions, the tool shows an **honest empty state** with a curated set of suggestion chips (mixing high- and low-status professions) — no SmolLM2 invention is presented as a result. The SmolLM2 text fallback is wired up only for the network-failure path (matched profession, HF fetch failed), in which case every card is badged **SIMULATED**.
-- Supports single and comparison modes for side-by-side prompt analysis.
-- **Adjective mode toggle:** Users can switch between *Varied* (each image uses a different randomly sampled adjective from the dataset's 21 real adjectives) and *Fixed* (all images use the same chosen adjective, enabling controlled comparisons). Fixed mode uses direct block-offset addressing against the HuggingFace Dataset Viewer API rather than filtered queries, since the API does not support compound `WHERE` clauses. The 21 adjectives are: `ambitious`, `assertive`, `committed`, `compassionate`, `confident`, `considerate`, `decisive`, `determined`, `emotional`, `gentle`, `honest`, `intellectual`, `modest`, `no_adjective` (neutral baseline), `outspoken`, `pleasant`, `self-confident`, `sensitive`, `stubborn`, `supportive`, `unreasonable`.
-
-**Key dependencies:** `@huggingface/transformers` (CLIP ViT-B/32), HuggingFace Dataset Viewer API, custom `GeneratorEngine`, `BiasAnalyzer`
-
----
-
-### Tool 8: Latent Space Navigator
-**Route:** `/latent-navigator`  
-**Purpose:** Explores the "in-between" spaces between data categories in latent space.
-
-**How it works:**
-- **Image mode:** Uses ResNet-50 to interpolate between visual categories.
-- **Text mode:** Uses `bge-small-en-v1.5` to navigate semantic vectors between two concepts.
-- Generates **"hidden concepts"** found in low-density areas of the latent space.
-- Provides real-time visualization of the interpolation path.
-
-**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (bge-small-en-v1.5)
-
----
-
-### Tool 9: Networked Narratives
-**Route:** `/networked-narratives`  
-**Purpose:** Visualizes relationships and entities within cultural texts.
-
-**How it works:**
-- Uses **Compromise.js** for NLP entity extraction (people, places, organizations).
-- Renders a **force-directed graph** using `react-force-graph-2d`.
-- **Visual Synapse feature:** Uses CLIP alignment to find semantically matching images from the dataset for extracted text entities.
-- Creates cross-modal "synapses" linking text concepts to visual evidence.
-
-**Key dependencies:** `compromise`, `react-force-graph-2d`, `@huggingface/transformers` (CLIP)
-
----
-
-### Tool 10: Noise Predictor
-**Route:** `/noise-predictor`  
-**Purpose:** Explores noise patterns and reconstruction limits in deep learning models.
-
-**How it works:**
-- **Autoencoder Architecture:** Trains a custom TensorFlow.js autoencoder to reconstruct data through a bottleneck layer.
-- **Text mode:** `bge-small-en-v1.5` provides semantic embeddings as input for the autoencoder.
-- **Image mode:** Uses raw pixel data or ResNet-50 features.
-- **Residual Analysis:** Visualizes the "noise" (original − reconstructed) as a spectral heatmap.
-- Demonstrates what the model "forgets" or "misinterprets" during compression.
-
-**Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` (bge-small-en-v1.5)
-
----
-
-### Tool 11: Threshold Adjuster
-**Route:** `/threshold-adjuster`  
-**Purpose:** Explores decision threshold sensitivity in classification systems.
-
-**How it works:**
-- Loads scored/classified data.
-- Interactive threshold slider lets users adjust the decision boundary.
-- Shows real-time impact on classification outcomes (approved/rejected).
-- Histogram visualization of score distribution.
-- Case list showing borderline decisions near the threshold.
-
----
-
-### Tool 12: Semantic Oracle
-**Route:** `/semantic-oracle`  
-**Purpose:** Local generative intelligence for concept exploration and semantic expansion.
-
-**How it works:**
-- Runs **SmolLM2-135M-Instruct** locally in the browser via WebGPU/WASM.
-- Three interactive modes:
-  - **Define:** Explains concepts clearly
-  - **Expand:** Lists related concepts and hidden connections
-  - **Tangent:** Generates creative, abstract metaphors
-- Integrates with the user's text corpus for contextual analysis.
-
-**Key dependencies:** `@huggingface/transformers`, `SmolLM2-135M-Instruct`
-
----
-
-### Tool 13: Visual Storyteller
-**Route:** `/visual-storyteller`  
-**Purpose:** AI-generated narrative captions from visual content.
-
-**How it works:**
-- Runs **ViT-GPT2 image captioning model** locally in the browser.
-- Processes images from the user's collection.
-- Generates natural language captions describing image content.
-- Maintains a story history of the last 10 captions.
-
-**Key dependencies:** `@huggingface/transformers`, `Florence-2-Base-ft`
-
----
-
-## 7. Design System
-
-The app implements the **Deep Culture** visual identity:
-
-```css
-:root {
-  --color-text: #000100;        /* Black */
-  --color-main: #832161;        /* Deep Magenta */
-  --color-alt: #ADFC92;         /* Neon Green */
-  --color-background: #99B2DD;  /* Soft Blue */
-  --font-main: 'Lexend', sans-serif;
-}
-```
-
-**Component classes:**
-| Class | Purpose |
+| Frontend | React 19 + TypeScript (strict) |
+| Build | Vite (rolldown), npm workspaces monorepo |
+| Styling | Tailwind CSS 4 |
+| State | Zustand 5 (`persist` middleware where noted) |
+| Routing | React Router 7, registry-generated routes |
+| Offline | vite-plugin-pwa (Workbox service worker, web manifest) |
+| Tests | Vitest (90+ unit tests across stores, helpers, narration, calibration) |
+
+### 2.2 AI / ML
+
+| Engine | Used for |
 |---|---|
-| `.deep-panel` | Card containers with border and shadow |
-| `.deep-button` | Primary action buttons (neon green) |
-| `.deep-button-secondary` | Secondary buttons (white) |
-| `.deep-input` | Form input fields |
-| `.nav-item` | Sidebar navigation items |
-| `.dc-card` | Tool panel containers |
+| `@huggingface/transformers` **v4.2** | All transformer inference (text generation, embeddings, captioning, ASR, depth, classification) in a dedicated Web Worker |
+| `@tensorflow/tfjs` | Small in-browser training demos (autoencoder in Noise Predictor, KNN-style classifiers) |
+| onnxruntime-web (bundled by transformers v4) | WASM (multithreaded via SharedArrayBuffer) and WebGPU execution |
 
----
+The **gemma-suite** sub-application (served under `/difference-suite-large-models/`) additionally runs large models — Gemma (LLM), Stable Diffusion Turbo, and a vision translator — in their own workers, for machines that can carry them.
 
-## 8. Performance Architecture
+### 2.3 Model registry (current)
 
-| Strategy | Implementation |
-|---|---|
-| Lazy model loading | Models loaded on first tool access only |
-| Singleton pattern | Prevents duplicate model initialization across renders |
-| Memoization | `useMemo` / `useCallback` for computed values and stable refs |
-| Web Workers | Heavy ML computation offloaded from main thread (`src/workers/`) |
-| Blob URLs | Image memory management — avoids duplication |
-| UUID lookups | Efficient item identification in the store |
+All transformer models are declared in `src/core/inference/modelRegistry.ts`. Adding a model is a one-entry change.
 
----
+| Logical id | Hub path | Task | Dtype | Device |
+|---|---|---|---|---|
+| smollm2-135m-instruct | onnx-community/SmolLM2-135M-Instruct-ONNX-MHA | text-generation | q4 | webgpu → wasm fallback |
+| florence-2-base-ft | onnx-community/Florence-2-base-ft | image-text-to-text (dedicated loader) | quantized | webgpu → wasm fallback |
+| bge-small-en-v1.5 | onnx-community/bge-small-en-v1.5-ONNX | feature-extraction (embeddings) | q4 | webgpu → wasm fallback |
+| clip-vit-base-patch32-q4 | Xenova/clip-vit-base-patch32 | CLIP via **direct model classes** (see 4.3) | q8 (split text/vision files) | wasm |
+| whisper-tiny-en | onnx-community/whisper-tiny.en | automatic-speech-recognition | q4 | wasm |
+| bert-base-uncased | Xenova/bert-base-uncased | feature-extraction (attention-analysis handler) | q8 | wasm |
+| resnet-50 | onnx-community/resnet-50-ONNX | image-classification | q4 | webgpu → wasm fallback |
+| depth-anything-small | Xenova/depth-anything-small-hf | depth-estimation | q4 | webgpu → wasm fallback |
 
-## 9. Security
+Two registry fields matter architecturally: `loader` (routes CLIP and Florence-2 to dedicated loaders rather than the generic `pipeline()` wrapper, which v4 does not support for these architectures) and `isLargeModel` (triggers evict-all before loading).
 
-| Measure | Implementation |
-|---|---|
-| XSS prevention | React's built-in escaping |
-| Auth input validation | Domain regex + whitelist |
-| HTTPS | Enforced by Vercel |
-| No secrets in frontend | Domain whitelist only (soft gate) |
-| File type detection | MIME type checking on upload |
+## 3. Repository & Application Architecture
 
----
+### 3.1 Monorepo layout
 
-## 10. Build & Deployment
+```
+/                       root app (the Difference Suite)
+/packages/shared        shared source: store, types, auth, dashboard, shell components
+/gemma-suite            large-models sub-app (own workers; built into dist/difference-suite-large-models/)
+```
+
+Both apps import `@difference-suite/shared` as TypeScript source. `npm run build:consolidated` builds the root app, then the sub-app, and copies the latter into the former's `dist/`.
+
+### 3.2 Routing — one source of truth
+
+`src/utils/navigation.ts` exports `TOOLS` (the fifteen tools: path, label, icon, description, `toolId`, lazy `component`) and `MAIN_MENU_EXTRAS` (Machine Room, Contestations, Collaboration). `App.tsx` *generates* its `<Route>` elements from these arrays — the sidebar and the router cannot drift. Tool pages are code-split via `React.lazy`.
+
+### 3.3 Global state
+
+| Store | Persistence | Contents |
+|---|---|---|
+| `suiteStore` (shared) | localStorage + IndexedDB | dataset items, collections, analysis results, embeddings, auth state. Binary content (images/audio) lives in IndexedDB; object URLs are recreated on hydration and revoked on deletion. `embeddingModelVersion` invalidates stored embeddings when the embedding model changes. |
+| `contestationStore` | localStorage | the user's dissent records (§6.2) — deliberately durable |
+| `machineRoomStore` | session only | ring buffer (300) of machine events — diagnostics, not records |
+| `currentOutputStore` | session only | each tool's current primary output, feeding the header Contest button; cleared on unmount |
+
+### 3.4 Authentication
+
+A cosmetic "soft gate" pending university SSO: `checkDomain()` accepts academic domains (`.edu`, `.ac.xx`, an explicit whitelist, subdomains included). Gating is route-level — locked content is *not mounted*, so models cannot load pre-auth. The skip flag is `VITE_SKIP_AUTH` (default true during development). `login(email)` in the shared store is the single entry point a future SURFconext/OIDC callback will call.
+
+## 4. Inference Architecture
+
+This is the suite's technical heart, hardened by a documented period of live debugging (see `What_It_Took_To_Make_Deep_Learning_Small.md`).
+
+### 4.1 The worker protocol
+
+All transformer inference runs in one Web Worker. Messages are a typed discriminated union: requests (`inference`, `get-status`, `clear-cache`) and responses (`progress`, `result`, `status`, `error`, `machine-event`). Progress events carry the **request id** (not the model id — the original bug that motivated the typed protocol) and reset a 5-minute *inactivity* timeout on the client; progress callbacks to the UI are throttled to ~10/s.
+
+`TransformersClient` (main thread) manages the worker lifecycle: pending-request routing, crash recovery with bounded restarts, a fatal-error latch with a human-readable message, and Blob-based image transport (no base64 inflation; payloads are cloned, never mutated).
+
+### 4.2 TransformersManager (worker side)
+
+- **Loading**: registry-driven; emits aggregated download progress via v4's `progress_total`; checks cache state via v4's `ModelRegistry` API.
+- **LRU eviction**: at most 3 resident models; least-recently-used is disposed first; `isLargeModel` evicts everything else; models mid-load are never evicted.
+- **Device policy**: tries the registry's `recommendedDevice`; on WebGPU failure, retries once on WASM and records the *effective* device, which the UI displays.
+- **Thread cap**: WASM threads = `min(4, cores − 2)`. ORT's pthread pool spin-waits; uncapped, a stuck model saturates every core and freezes the entire tab.
+- **Watchdog**: every handler runs under a 120 s `Promise.race`; on timeout the model is disposed, the LRU slot freed, and the client receives a descriptive error instead of an eternal spinner.
+- **Offline**: `env.useWasmCache = true` caches the WASM runtime itself, so inference works offline after first use.
+
+### 4.3 Dedicated loaders
+
+v4's generic `pipeline()` wrapper does not support every architecture. Two models load through direct model classes instead:
+
+- **CLIP** — `CLIPTextModelWithProjection` + `CLIPVisionModelWithProjection` + tokenizer + processor, wrapped in a pseudo-pipeline with the standard `dispose()` contract. (Loading CLIP through `pipeline('feature-extraction')` hangs ORT session creation in v4 — across every dtype and export. The split-file Xenova export is *required* by these classes; the "newer" unified export is incompatible.)
+- **Florence-2** — `AutoModelForImageTextToText` (v4 moved it out of Vision2Seq).
+
+### 4.4 Task handlers
+
+Self-registering handlers per task (`text-generation`, `feature-extraction`, `image-to-text`, `attention-analysis`, `multimodal-alignment`, `image-classification`, `depth-estimation`, `speech-recognition`, `zero-shot-ner`). Notable: `attention-analysis` truncates input to 128 tokens (seqLen² safety) and currently computes hidden-state cosine similarity — real attention weights are pending Transformers.js v4 exposing `output_attentions` (a greppable `TODO` marks the swap point, and the UI badge says exactly this).
+
+### 4.5 Machine events
+
+Every decision point in the manager and client emits a `MachineEvent` (load-requested, cache-check, download, dtype-chosen *with the alternatives*, device-chosen, device-fallback *with the original error*, threads-capped, evicted, loaded, inference-start/done, watchdog-timeout, worker-crash/restart, cache-cleared). Emission is fire-and-forget and never logs user content — only shapes, sizes, durations, ids. `machineNarrator.ts` renders each event as one plain-language sentence (≤ 25 words, no unglossed acronyms): *"Removed 'CLIP' from memory to make room. Your browser can only hold 3 models at once."*
+
+## 5. The Fifteen Tools
+
+Each tool page publishes its current output to the header **Contest** button and carries the **"Show the machine's work"** drawer (a fixed bottom status bar listing the session's machine events for that tool).
+
+| # | Tool | Keyword translation | Models | One line |
+|---|---|---|---|---|
+| 1 | Ambiguity Amplifier | Bias → Ambiguity | ResNet-50 / BGE | Inject noise into images or text and watch classification confidence waver at category borderlines. |
+| 2 | Context Weaver | Vector → Context | BGE | Map how a text's meaning shifts across multiple contexts; radial visualisation of embedding relations. |
+| 3 | Deep Vector Mirror | Vector → Context | CLIP, BGE, BERT | An image or text becomes a vector: heatmap of the embedding (95th-percentile scaled — CLIP's outlier dimensions no longer black everything out), noise/context injection sliders, attention lens for text. |
+| 4 | Deep Time | Discontinuity → Contingency | BERT (sub-views) | Three sub-views (Attention Lens, Diffusion Scrubber, Memory Audit) on how architectures handle time and memory. |
+| 5 | Depth Mirror | — (perception study) | Depth Anything | Monocular depth estimation: what the model believes is near and far, and where it is wrong. |
+| 6 | Detail Extractor | Detail → Narrative | BGE / CLIP | Embedding-space clustering of a collection; surfaces outliers and fine-grained detail in the archive. |
+| 7 | Discontinuity Detector | Anomaly → Contingency | (TFJS) | Time-series anomaly detection reframed as attention to contingency and minor shifts. |
+| 8 | Glitch Detector | Anomaly → Contingency | CLIP (image), BGE (text) | Train a "normal" baseline on one collection, then test items against it with a *user-owned* sensitivity threshold. |
+| 9 | Imagination Inspector | Generativity → Creativity | CLIP + Stable Bias dataset | Examines generative bias via real SD 1.4 / SD 2 / DALL-E 2 outputs from the `stable-bias/professions` research corpus (CC BY-SA), classified locally by CLIP with **calibrated, disclosed uncertainty**: tags read "CLIP-perceived", narrow margins yield *ambiguous*, hover shows top-2 probabilities. The Void Report shows present, absent **and ambiguous** distributions. Unmatched prompts get an honest empty state, never simulated data. |
+| 10 | Latent Space Navigator | Identity → Ambiguity | CLIP / BGE + TFJS | Interpolate between two items in latent space; the region between categories made navigable. |
+| 11 | Networked Narratives | Profile → Narrative | compromise NLP + CLIP | Entity graphs from text collections; Visual Synapse links images into the narrative graph. |
+| 12 | Noise Predictor | Generativity → Creativity | TFJS autoencoder / BGE | Trains a small autoencoder live on one item; shows Original → Reconstructed → Residual (amplified for visibility). What the bottleneck keeps is "signal"; what it discards is "noise" — and the discard is cultural. |
+| 13 | Semantic Oracle | — (local generative intelligence) | SmolLM2-135M | Define/expand/tangent prompts against a fully local LLM; small enough to be interrogated, wrong enough to be instructive. |
+| 14 | Threshold Adjuster | Probability → Doubt | BGE | Move the decision threshold yourself and watch classifications flip; doubt as a slider. |
+| 15 | Visual Storyteller | Generativity → Creativity | Florence-2 + SmolLM2 | Two-stage pipeline: Florence-2 *sees* (literal caption), SmolLM2 *imagines* (sampled surreal micro-story). Both are displayed — machine perception and machine confabulation side by side. |
+
+## 6. Engine-Room Pages
+
+### 6.1 Machine Room (`/machine-room`)
+
+Three sections. **Now**: resident models as cards — Hub link, footprint, configured vs *effective* device, chosen precision with alternatives, plus per-model "remove from this computer" (worker-mediated cache clearing). **Journal**: the live narrated event feed, filterable by tool and model, with expandable technical detail. **Fragility**: session counters for downloads, fallbacks, evictions, timeouts, crashes — breakdowns presented as pedagogy, not embarrassment.
+
+### 6.2 Contestations (`/contestations`)
+
+A persistent ledger of the user's dissent. Any tool output can be contested from the header button: category (erasure, stereotype, mislabel, disagreement, other), free-text note, optional initials — no accounts. Records carry the contested output summary and the settings that produced it. Export as schema-versioned JSON (the interchange format) or as a self-contained printable HTML evidence packet.
+
+### 6.3 Collaboration (`/collaboration`)
+
+Zero-server group comparison: drag in others' exported packets; each becomes a participant. A **threshold spread** plots every participant's Glitch Detector sensitivity on one axis — the group's disagreement about where "glitch" begins, in one picture. A **tool × participant matrix** shows where friction concentrates. Combined export merges all packets (dedup by id). Imported packets live in memory only: a collaboration is an encounter, not a database.
+
+## 7. Persistence & Offline
+
+- **Data**: text items in localStorage; images/audio blobs in IndexedDB, rehydrated to object URLs; analysis results and embeddings persisted with items.
+- **Models**: Transformers.js caches weights and (v4) the WASM runtime in the browser's Cache API — exclusively; the service worker explicitly passes Hugging Face requests through untouched.
+- **App shell**: precached by a Workbox service worker (vite-plugin-pwa, autoUpdate). Google Fonts runtime-cached. The gemma-suite sub-app is runtime-cached after first visit.
+- **Result**: after one online session, the page, the engine, and every previously used model work with the network off. The suite is installable (manifest + icons).
+- **Headers**: COOP/COEP are required for multithreaded WASM (`crossOriginIsolated`) and are set identically in dev (`vite.config.ts`) and production (`vercel.json`); cross-origin resources (fonts) carry `crossorigin` attributes to survive COEP.
+
+## 8. Privacy & Security
+
+No inference server, no analytics, no accounts. The only network traffic is static assets and model downloads from the Hugging Face Hub. Contestation notes are user-authored text rendered as text (no HTML injection) and leave the machine only as user-initiated file downloads. Machine events never contain prompt text or image data.
+
+## 9. Build, Test, Deploy
 
 ```bash
-# Development
-npm install
-npm run dev        # localhost:5173
-
-# Production
-npm run build      # tsc -b && vite build
-npm run preview    # Preview production bundle
+npm install                  # workspace root
+npm run dev                  # root app, localhost:5173
+npm test                     # vitest
+npm run build:consolidated   # root + gemma-suite → dist/
 ```
 
-**Vercel config** (`vercel.json`):
-```json
-{ "rewrites": [{ "source": "/(.*)", "destination": "/" }] }
-```
-Single-page app rewrite — all routes served from `index.html`.
+Deployment is Vercel: `build:consolidated`, COOP/COEP headers on all routes, SPA rewrite for the sub-app path, no-cache headers on service-worker files. CI sanity: `tsc -b` clean, eslint zero errors, vitest green, both apps build.
 
 ---
 
-## 11. ML Model–Tool Dependency Map
-
-| Model | Tools |
-|---|---|
-| `bge-small-en-v1.5` | Context Weaver, Latent Navigator, Glitch Detector, Noise Predictor, Ambiguity Amplifier (text), Detail Extractor |
-| `ResNet-50` | Ambiguity Amplifier (image), Glitch Detector (image), Latent Navigator (image), Noise Predictor (image) |
-| `KNN Classifier` | Ambiguity Amplifier, Glitch Detector |
-| `CLIP ViT-B/32` | Imagination Inspector (zero-shot demographic classification + dataset alignment), Networked Narratives |
-| `SmolLM2-135M-Instruct` | Semantic Oracle, Imagination Inspector (fallback for unknown professions) |
-| `Florence-2-Base-ft` | Visual Storyteller |
-| `Whisper-tiny.en` | Audio input (dashboard) |
-| `TF.js Autoencoder (custom)` | Noise Predictor |
-| `TF.js Anomaly Detection (custom)` | Discontinuity Detector |
+*For the narrative of how this architecture earned its defensive features, see `What_It_Took_To_Make_Deep_Learning_Small.md`. For classroom use, see the Guided Walkthrough.*
