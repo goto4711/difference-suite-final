@@ -8,7 +8,7 @@ type ProgressPayload = {
     progress?: number;
 };
 
-type ActiveModel = 'gemma' | 'sd' | 'vision';
+type ActiveModel = 'gemma' | 'vision';
 type WorkerAction = 'LOAD_MODEL' | 'GENERATE' | 'UNLOAD';
 type WorkerStatus = 'loading' | 'success' | 'error';
 
@@ -40,7 +40,6 @@ export interface ChatMessage {
 
 class InferenceManager {
     private gemmaWorker: Worker | null = null;
-    private sdWorker: Worker | null = null;
     private visionWorker: Worker | null = null;
     private activeModel: ActiveModel | null = null;
     private msgIdCounter = 0;
@@ -52,8 +51,6 @@ class InferenceManager {
         const loadedModels = [];
         if (this.activeModel === 'gemma') {
             loadedModels.push({ id: 'gemma', name: 'Gemma 4 (2B) E2B', device: 'webgpu', memoryFootprintMB: 2800 });
-        } else if (this.activeModel === 'sd') {
-            loadedModels.push({ id: 'sd', name: 'Stable Diffusion Turbo', device: 'webgpu', memoryFootprintMB: 3500 });
         } else if (this.activeModel === 'vision') {
             loadedModels.push({ id: 'vision', name: 'Vision Translator', device: 'wasm/webgpu', memoryFootprintMB: 250 });
         }
@@ -109,15 +106,6 @@ class InferenceManager {
         }
     }
 
-    private initSdWorker() {
-        if (!this.sdWorker) {
-            this.sdWorker = new Worker(
-                new URL('../../workers/sd.worker.ts', import.meta.url),
-                { type: 'module' }
-            );
-        }
-    }
-
     private initVisionWorker() {
         if (!this.visionWorker) {
             this.visionWorker = new Worker(
@@ -128,10 +116,7 @@ class InferenceManager {
     }
 
     public async loadGemma(onProgress?: (event: LoadProgressEvent) => void): Promise<void> {
-        if (this.activeModel === 'sd') {
-            debug('Unloading SD to make room for Gemma...');
-            await this.unloadSD();
-        } else if (this.activeModel === 'vision') {
+        if (this.activeModel === 'vision') {
             debug('Unloading Vision Translator to make room for Gemma...');
             await this.unloadVision();
         }
@@ -175,58 +160,9 @@ class InferenceManager {
         if (this.activeModel === 'gemma') this.activeModel = null;
     }
 
-    public async loadSD(onProgress?: (event: LoadProgressEvent) => void): Promise<void> {
-        if (this.activeModel === 'gemma') {
-            debug('Unloading Gemma to make room for Stable Diffusion...');
-            await this.unloadGemma();
-        } else if (this.activeModel === 'vision') {
-            await this.unloadVision();
-        }
-
-        if (!this.sdWorker) {
-            this.initSdWorker();
-        }
-
-        if (!this.sdWorker) {
-            throw new Error('Stable Diffusion worker not initialized');
-        }
-
-        await this.sendWorkerRequest<string>(this.sdWorker, {
-            action: 'LOAD_MODEL',
-            msgId: this.nextMsgId(),
-        }, onProgress);
-
-        this.activeModel = 'sd';
-    }
-
-    public async generateSD(prompt: string, steps: number = 2): Promise<string> {
-        if (!this.sdWorker) {
-            throw new Error('SD worker not initialized');
-        }
-
-        return this.sendWorkerRequest<string>(this.sdWorker, {
-            action: 'GENERATE',
-            payload: { prompt, steps },
-            msgId: this.nextMsgId(),
-        });
-    }
-
-    public async unloadSD(): Promise<void> {
-        if (!this.sdWorker) return;
-
-        await this.sendWorkerRequest(this.sdWorker, {
-            action: 'UNLOAD',
-            msgId: this.nextMsgId(),
-        });
-
-        if (this.activeModel === 'sd') this.activeModel = null;
-    }
-
     public async loadVision(onProgress?: (event: LoadProgressEvent) => void): Promise<void> {
         if (this.activeModel === 'gemma') {
             await this.unloadGemma();
-        } else if (this.activeModel === 'sd') {
-            await this.unloadSD();
         }
 
         if (!this.visionWorker) {

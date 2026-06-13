@@ -77,7 +77,7 @@ const SemanticOraclePro: React.FC = () => {
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-main/50 uppercase font-bold text-center">
                         Ask Gemma 4 to analyze cultural concepts, generate narratives, or cross-compile definitions.

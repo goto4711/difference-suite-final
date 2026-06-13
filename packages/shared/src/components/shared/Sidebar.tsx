@@ -27,6 +27,11 @@ interface SidebarProps {
      * so the root can redirect into the main menu cleanly.
      */
     dashboardPath?: string;
+    /**
+     * Suppress the Data Dashboard link entirely. Set true for apps where the
+     * dashboard is parked and the main menu starts directly with mainMenuExtras.
+     */
+    hideDashboardLink?: boolean;
 }
 
 export const Sidebar = ({
@@ -36,6 +41,7 @@ export const Sidebar = ({
     accessLink,
     mainMenuExtras,
     dashboardPath = '/',
+    hideDashboardLink = false,
 }: SidebarProps) => {
     const location = useLocation();
     const isDashboardActive =
@@ -57,17 +63,19 @@ export const Sidebar = ({
             <div className="flex-1 overflow-y-auto py-8 custom-scrollbar">
                 <div className="nav-group-label pl-8 bg-white">Main Menu</div>
 
-                <Link
-                    to={dashboardPath}
-                    className={`flex items-center gap-4 px-8 py-3 text-sm font-medium transition-all
-                        ${isDashboardActive
-                            ? 'text-main bg-main/10 border-r-4 border-main font-bold'
-                            : 'text-main/60 hover:bg-main/5 hover:text-main border-r-4 border-transparent'
-                        }`}
-                >
-                    <LayoutDashboard className="w-5 h-5" />
-                    Data Dashboard
-                </Link>
+                {!hideDashboardLink && (
+                    <Link
+                        to={dashboardPath}
+                        className={`flex items-center gap-4 px-8 py-3 text-sm font-medium transition-all
+                            ${isDashboardActive
+                                ? 'text-main bg-main/10 border-r-4 border-main font-bold'
+                                : 'text-main/60 hover:bg-main/5 hover:text-main border-r-4 border-transparent'
+                            }`}
+                    >
+                        <LayoutDashboard className="w-5 h-5" />
+                        Data Dashboard
+                    </Link>
+                )}
 
                 {mainMenuExtras?.map((entry) => {
                     const isActive = location.pathname === entry.path;

@@ -2,7 +2,7 @@ import {
     Sparkles,
     BrainCircuit,
     FileText,
-    Image as ImageIcon
+    BookOpen
 } from 'lucide-react';
 
 export const TOOLS = [
@@ -16,18 +16,26 @@ export const TOOLS = [
         path: '/imagination-inspector-pro',
         label: 'Imagination Inspector Pro',
         icon: Sparkles,
-        description: 'Probe generative imagination with SD Turbo and Gemma 4.'
+        description: 'Read the Stable Bias corpus with Gemma 4 commentary.'
     },
     {
         path: '/visual-storyteller-pro',
         label: 'Visual Storyteller Pro',
         icon: FileText,
         description: 'Generate rich AI captions from images with Gemma 4.'
-    },
+    }
+];
+
+/**
+ * Extra entries rendered under "Main Menu" in the sidebar, alongside the
+ * Data Dashboard link. Use for non-tool pages (background docs, future
+ * Machine Room, etc.).
+ */
+export const MAIN_MENU_EXTRAS = [
     {
-        path: '/sd-showcase',
-        label: 'SD Turbo Showcase',
-        icon: ImageIcon,
-        description: 'Generate images directly in the browser.'
+        path: '/about',
+        label: 'About this suite',
+        icon: BookOpen,
+        description: 'Background document — written June 2026.'
     }
 ];
