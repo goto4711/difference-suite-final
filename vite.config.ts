@@ -134,6 +134,11 @@ export default defineConfig({
     alias: {
       '@difference-suite/shared': path.resolve(__dirname, 'packages/shared/src'),
     },
+    // Force a single resolved copy of these packages. The shared workspace
+    // package imports react-router-dom but resolves it relative to its own
+    // file location; mismatched copies break Router context (useLocation
+    // looks for its own version's Provider).
+    dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom'],
   },
   worker: {
     format: 'es',
