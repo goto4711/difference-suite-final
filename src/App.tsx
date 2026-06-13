@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '@difference-suite/shared/components/shared/MainLayout';
 import { Header as SharedHeader } from '@difference-suite/shared/components/shared/Header';
 import { Dashboard } from './components/dashboard/Dashboard';
@@ -31,7 +31,8 @@ function App() {
             }
           >
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Navigate to="/data-dashboard" replace />} />
+              <Route path="/data-dashboard" element={<Dashboard />} />
               {MAIN_MENU_EXTRAS.map((entry) => {
                 const EntryComponent = entry.component;
                 return (

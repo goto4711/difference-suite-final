@@ -7,6 +7,7 @@ const Sidebar = () => {
             tools={TOOLS.map(({ path, label, icon }) => ({ path, label, icon }))}
             mainMenuExtras={MAIN_MENU_EXTRAS.map(({ path, label, icon }) => ({ path, label, icon }))}
             logoSrc="/deep-culture-logo.png"
+            dashboardPath="/data-dashboard"
             accessLink={{
                 href: '/difference-suite-large-models/',
                 label: 'Large Models Suite',

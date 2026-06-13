@@ -21,6 +21,12 @@ interface SidebarProps {
     accessLink?: SidebarAccessLink;
     /** Optional extra entries rendered under the "Main Menu" section, below Data Dashboard. */
     mainMenuExtras?: SidebarTool[];
+    /**
+     * Route the Data Dashboard link points to. Defaults to "/" for apps where
+     * the dashboard is the root. difference-suite mounts it at /data-dashboard
+     * so the root can redirect into the main menu cleanly.
+     */
+    dashboardPath?: string;
 }
 
 export const Sidebar = ({
@@ -29,8 +35,12 @@ export const Sidebar = ({
     logoHref = 'https://deep-culture.org/',
     accessLink,
     mainMenuExtras,
+    dashboardPath = '/',
 }: SidebarProps) => {
     const location = useLocation();
+    const isDashboardActive =
+        location.pathname === dashboardPath ||
+        (dashboardPath !== '/' && location.pathname === '/');
 
     return (
         <div className="w-[270px] bg-white border-r border-[#0000000d] flex flex-col h-full z-10 shrink-0 shadow-sm overflow-hidden">
@@ -48,9 +58,9 @@ export const Sidebar = ({
                 <div className="nav-group-label pl-8 bg-white">Main Menu</div>
 
                 <Link
-                    to="/"
+                    to={dashboardPath}
                     className={`flex items-center gap-4 px-8 py-3 text-sm font-medium transition-all
-                        ${location.pathname === '/'
+                        ${isDashboardActive
                             ? 'text-main bg-main/10 border-r-4 border-main font-bold'
                             : 'text-main/60 hover:bg-main/5 hover:text-main border-r-4 border-transparent'
                         }`}
