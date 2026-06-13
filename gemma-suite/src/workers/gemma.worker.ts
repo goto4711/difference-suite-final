@@ -31,6 +31,8 @@ interface GemmaPipeline {
             max_new_tokens: number;
             temperature: number;
             do_sample: boolean;
+            top_p?: number;
+            repetition_penalty?: number;
         },
     ): Promise<unknown>;
     dispose?: () => Promise<void>;
@@ -68,14 +70,15 @@ const stringifyContent = (content: unknown): string => {
  * Apply Gemma's chat template manually. The onnx-community/gemma-4-E2B-it
  * tokenizer config does not ship a chat_template, so calling the pipeline
  * with a messages array fails with "tokenizer.chat_template is not set".
- * Format the conversation into the canonical Gemma turn structure and
- * append the open model turn so generation continues from there.
+ * Format the conversation into the canonical Gemma turn structure (with
+ * the required <bos> token at the start) and append the open model turn
+ * so generation continues from there.
  */
 function buildGemmaPrompt(messages: ChatMessage[]): string {
-    let prompt = '';
+    let prompt = '<bos>';
     for (const msg of messages) {
         const role = msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user';
-        prompt += `<start_of_turn>${role}\n${stringifyContent(msg.content)}<end_of_turn>\n`;
+        prompt += `<start_of_turn>${role}\n${stringifyContent(msg.content).trim()}<end_of_turn>\n`;
     }
     prompt += '<start_of_turn>model\n';
     return prompt;
@@ -90,13 +93,28 @@ function extractReply(rawOutput: unknown, prompt: string): string {
     } else {
         text = JSON.stringify(rawOutput);
     }
+    // The tokenizer may insert <bos> automatically; strip it from the output
+    // regardless of whether our prompt included it.
     if (text.startsWith(prompt)) {
         text = text.slice(prompt.length);
+    } else {
+        // Fall back: find the last "<start_of_turn>model" marker in the output
+        // and take everything after the following newline. This survives any
+        // small mismatch between our prompt string and the decoded full text.
+        const marker = '<start_of_turn>model';
+        const lastModel = text.lastIndexOf(marker);
+        if (lastModel !== -1) {
+            const afterMarker = text.slice(lastModel + marker.length);
+            const nl = afterMarker.indexOf('\n');
+            text = nl !== -1 ? afterMarker.slice(nl + 1) : afterMarker;
+        }
     }
-    const eoi = text.indexOf('<end_of_turn>');
-    if (eoi !== -1) text = text.slice(0, eoi);
-    // Some Gemma runs emit a trailing <eos> token before <end_of_turn>.
-    text = text.replace(/<eos>$/g, '');
+    // Stop at the first turn boundary or eos.
+    const stops = ['<end_of_turn>', '<eos>', '<start_of_turn>'];
+    for (const stop of stops) {
+        const i = text.indexOf(stop);
+        if (i !== -1 && i < text.length) text = text.slice(0, i);
+    }
     return text.trim();
 }
 
@@ -143,6 +161,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                 max_new_tokens,
                 temperature,
                 do_sample: true,
+                top_p: 0.95,
+                // Crucial for the INT4 export: without a small repetition
+                // penalty the model loops on control tokens like <start_of_turn>.
+                repetition_penalty: 1.15,
             });
             const reply = extractReply(raw, prompt);
 
