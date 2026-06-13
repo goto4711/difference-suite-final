@@ -11,7 +11,8 @@ const Sidebar = () => {
             accessLink={{
                 href: '/difference-suite-large-models/',
                 label: 'Large Models Suite',
-                badgeText: 'G'
+                badgeText: 'G',
+                openInNewTab: true
             }}
         />
     );

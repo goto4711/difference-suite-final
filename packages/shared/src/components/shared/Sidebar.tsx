@@ -12,6 +12,8 @@ interface SidebarAccessLink {
     href: string;
     label: string;
     badgeText?: string;
+    /** Open the link in a new browser tab. Default false (same tab). */
+    openInNewTab?: boolean;
 }
 
 interface SidebarProps {
@@ -121,6 +123,8 @@ export const Sidebar = ({
 
                         <a
                             href={accessLink.href}
+                            target={accessLink.openInNewTab ? '_blank' : undefined}
+                            rel={accessLink.openInNewTab ? 'noopener noreferrer' : undefined}
                             className="flex items-center gap-4 px-8 py-3 text-sm font-medium text-main/40 hover:bg-main/5 hover:text-main border-r-4 border-transparent transition-all"
                         >
                             <div className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-[10px] font-bold">
