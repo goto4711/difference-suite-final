@@ -127,6 +127,7 @@ const AttentionLens = ({ text, isProcessing }: { text: string; isProcessing: boo
 
 const DeepVectorMirror = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const [mode, setMode] = useState<AnalysisMode>('image');
 
     const imageItems = useMemo(() => dataset.filter(i => i.type === 'image'), [dataset]);
@@ -201,6 +202,14 @@ const DeepVectorMirror = () => {
                       noise: Number(noiseLevel.toFixed(2)),
                       contextShift: Number(contextLevel.toFixed(2)),
                   }
+                : undefined,
+        // Vector pane: resnet-50 (image) or the active text embedding model (text).
+        // Attention pane: bert-base-uncased is invoked when there is text to inspect.
+        models:
+            selectedItem && selectedItem.type === mode && vector.length > 0
+                ? mode === 'image'
+                    ? ['resnet-50']
+                    : [textEmbeddingModel, 'bert-base-uncased']
                 : undefined,
     });
 

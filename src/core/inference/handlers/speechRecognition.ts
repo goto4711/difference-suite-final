@@ -12,10 +12,17 @@ registerHandler({
     pipeline: unknown,
     onProgress?: (p: InferenceProgress) => void,
   ): Promise<InferenceResult> {
-    const { audioData } = request.payload as {
-      /** Raw PCM audio samples (mono, 16 kHz Float32Array) */
-      audioData: Float32Array;
+    const payload = request.payload as {
+      /** Raw PCM audio samples (mono, 16 kHz Float32Array). Either key accepted. */
+      audio?: Float32Array;
+      audioData?: Float32Array;
+      /** Whisper language hint, e.g. 'english', 'german'. Omit for auto-detect. */
+      language?: string;
     };
+    const audio = payload.audio ?? payload.audioData;
+    if (!audio) {
+      throw new Error('speech-recognition: missing audio payload (expected `audio` Float32Array).');
+    }
 
     onProgress?.({
       id: request.id,
@@ -29,7 +36,10 @@ registerHandler({
       opts?: Record<string, unknown>,
     ) => Promise<{ text: string } | Array<{ text: string }>>;
 
-    const result = await pipe(audioData);
+    const pipeOptions: Record<string, unknown> = {};
+    if (payload.language) pipeOptions.language = payload.language;
+
+    const result = await pipe(audio, pipeOptions);
 
     const text = Array.isArray(result)
       ? result[0].text.trim()

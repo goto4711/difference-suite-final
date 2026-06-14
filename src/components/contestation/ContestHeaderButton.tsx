@@ -23,6 +23,7 @@ const ContestHeaderButton = () => {
             toolId={current.toolId}
             outputSummary={current.outputSummary}
             settings={current.settings}
+            models={current.models}
             label="Contest"
         />
     );

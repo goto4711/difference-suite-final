@@ -1,7 +1,32 @@
 import path from 'node:path'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// Resolve build-time provenance globals (__APP_COMMIT__, __APP_VERSION__) used
+// by the contestation packet schema. Both fail soft so dev/CI without git or
+// without the package.json field still build.
+const resolveGitSha = (): string => {
+  if (process.env.GIT_SHA) return process.env.GIT_SHA
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim() || 'dev'
+  } catch {
+    return 'dev'
+  }
+}
+
+const resolvePkgVersion = (): string => {
+  try {
+    const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')) as { version?: string }
+    return typeof pkg.version === 'string' ? pkg.version : '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
 
 const COOP_COEP = {
   // Required for SharedArrayBuffer (multithreaded WASM in onnxruntime-web).
@@ -17,6 +42,10 @@ const COOP_COEP = {
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_COMMIT__: JSON.stringify(resolveGitSha()),
+    __APP_VERSION__: JSON.stringify(resolvePkgVersion()),
+  },
   plugins: [
     react(),
     VitePWA({

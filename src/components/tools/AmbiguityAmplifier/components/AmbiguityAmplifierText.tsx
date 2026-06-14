@@ -16,6 +16,7 @@ const getTextContent = (item: DataItem) => (typeof item.content === 'string' ? i
 
 const AmbiguityAmplifierText = () => {
     const { collections, dataset } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const [isModelReady, setIsModelReady] = useState(false);
     const [classA, setClassA] = useState('Concept A');
     const [classB, setClassB] = useState('Concept B');
@@ -171,6 +172,7 @@ const AmbiguityAmplifierText = () => {
                 ? `Text: "${testSentence.length > 120 ? testSentence.slice(0, 120) + '…' : testSentence}" → top: ${predictions[0].className} (${(predictions[0].probability * 100).toFixed(1)}%) at noise ${(noiseLevel * 100).toFixed(0)}%`
                 : null,
         settings: predictions.length > 0 ? { mode: 'text', noise: Number(noiseLevel.toFixed(2)) } : undefined,
+        models: predictions.length > 0 ? [textEmbeddingModel] : undefined,
     });
 
     const mainContent = (

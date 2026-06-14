@@ -1,7 +1,4 @@
-import type {
-    ContestationCategory,
-    ContestationRecord,
-} from '../../stores/contestationStore';
+import type { ContestationRecord } from '../../stores/contestationStore';
 
 export interface Participant {
     id: string;            // stable handle (filename or 'local')
@@ -80,7 +77,8 @@ export const buildThresholdSpread = (participants: Participant[]): ThresholdRow[
 
 export interface MatrixCell {
     count: number;
-    categories: Partial<Record<ContestationCategory, number>>;
+    /** Category id → count. Open-ended because categories are user-managed. */
+    categories: Record<string, number>;
 }
 
 export interface MatrixData {

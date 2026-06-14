@@ -3,6 +3,10 @@ import {
     buildPacket,
     CONTESTATION_NOTE_MAX,
     CONTESTATION_PACKET_SCHEMA,
+    CONTESTATION_PACKET_SCHEMA_V1,
+    CONTESTATION_PACKET_SCHEMA_V2,
+    DEFAULT_CATEGORIES,
+    getPacketCategories,
     isContestationPacket,
     isContestationRecord,
     mergeRecords,
@@ -26,7 +30,7 @@ const baseRecord = (overrides: Partial<ContestationRecord> = {}): ContestationRe
 
 beforeEach(() => {
     localStorage.clear();
-    useContestationStore.setState({ records: [] });
+    useContestationStore.setState({ records: [], categories: DEFAULT_CATEGORIES });
 });
 
 afterEach(() => {
@@ -146,8 +150,222 @@ describe('packet validation', () => {
 
     it('isContestationRecord validates required shape', () => {
         expect(isContestationRecord(baseRecord())).toBe(true);
-        expect(isContestationRecord({ ...baseRecord(), category: 'nope' })).toBe(false);
+        // Free-form category strings are now valid (custom ids are supported);
+        // only empty strings are rejected.
+        expect(isContestationRecord({ ...baseRecord(), category: 'nope' })).toBe(true);
+        expect(isContestationRecord({ ...baseRecord(), category: '' })).toBe(false);
+        expect(isContestationRecord({ ...baseRecord(), category: 42 })).toBe(false);
         expect(isContestationRecord({ ...baseRecord(), ts: 'not-a-number' })).toBe(false);
+    });
+
+    it('isContestationRecord rejects malformed provenance but accepts missing', () => {
+        expect(isContestationRecord({ ...baseRecord(), provenance: undefined })).toBe(true);
+        expect(
+            isContestationRecord({
+                ...baseRecord(),
+                provenance: { appCommit: 'abc1234' },
+            }),
+        ).toBe(true);
+        expect(
+            isContestationRecord({
+                ...baseRecord(),
+                provenance: { appCommit: 'abc', models: ['clip-vit-base-patch32-q4'] },
+            }),
+        ).toBe(true);
+        // Missing appCommit → invalid.
+        expect(
+            isContestationRecord({ ...baseRecord(), provenance: { models: ['x'] } }),
+        ).toBe(false);
+        // Non-string in models → invalid.
+        expect(
+            isContestationRecord({
+                ...baseRecord(),
+                provenance: { appCommit: 'abc', models: ['ok', 42] },
+            }),
+        ).toBe(false);
+    });
+});
+
+describe('packet versioning (@1 ↔ @2)', () => {
+    it('default schema id is @2', () => {
+        expect(CONTESTATION_PACKET_SCHEMA).toBe(CONTESTATION_PACKET_SCHEMA_V2);
+    });
+
+    it('buildPacket emits @2 with embedded categories', () => {
+        const packet = buildPacket([baseRecord()]);
+        expect(packet.schema).toBe(CONTESTATION_PACKET_SCHEMA_V2);
+        expect(packet.categories.length).toBeGreaterThanOrEqual(DEFAULT_CATEGORIES.length);
+        expect(isContestationPacket(packet)).toBe(true);
+    });
+
+    it('accepts a legacy @1 packet (no categories field)', () => {
+        const legacy = {
+            schema: CONTESTATION_PACKET_SCHEMA_V1,
+            exported: 1,
+            records: [baseRecord()],
+        };
+        expect(isContestationPacket(legacy)).toBe(true);
+        expect(getPacketCategories(legacy)).toBeNull();
+    });
+
+    it('rejects a @2 packet missing the categories field', () => {
+        const malformed = {
+            schema: CONTESTATION_PACKET_SCHEMA_V2,
+            exported: 1,
+            records: [baseRecord()],
+        };
+        expect(isContestationPacket(malformed)).toBe(false);
+    });
+
+    it('preserves @2 categories on a round-trip through getPacketCategories', () => {
+        const customCat = { id: 'misattribution', label: 'Misattribution', color: '#123456' };
+        const packet = buildPacket(
+            [baseRecord({ category: 'misattribution' })],
+            [...DEFAULT_CATEGORIES, customCat],
+        );
+        const cats = getPacketCategories(packet);
+        expect(cats?.find((c) => c.id === 'misattribution')).toEqual(customCat);
+    });
+
+    it('mergeRecords works with mixed @1 and @2 record sources', () => {
+        const v1Record = baseRecord({ id: 'v1', provenance: undefined });
+        const v2Record = baseRecord({
+            id: 'v2',
+            category: 'misattribution',
+            provenance: { appCommit: 'abc1234', models: ['clip-vit-base-patch32-q4'] },
+        });
+        const merged = mergeRecords([[v1Record], [v2Record]]);
+        expect(merged).toHaveLength(2);
+        expect(merged.find((r) => r.id === 'v1')?.provenance).toBeUndefined();
+        expect(merged.find((r) => r.id === 'v2')?.provenance?.appCommit).toBe('abc1234');
+    });
+});
+
+describe('provenance population on add()', () => {
+    it('always records appCommit and appVersion from build-time globals', () => {
+        const r = useContestationStore.getState().add({
+            toolId: 'X',
+            route: '/x',
+            outputSummary: 's',
+            category: 'other',
+            note: 'n',
+        });
+        expect(r.provenance?.appCommit).toBe('test');
+        expect(r.provenance?.appVersion).toBe('0.0.0-test');
+        // No models supplied → field absent rather than empty array. Honest silence.
+        expect(r.provenance?.models).toBeUndefined();
+    });
+
+    it('records models when the contesting tool declares them', () => {
+        const r = useContestationStore.getState().add({
+            toolId: 'ImaginationInspector',
+            route: '/imagination-inspector',
+            outputSummary: 's',
+            category: 'stereotype',
+            note: 'n',
+            provenance: { models: ['clip-vit-base-patch32-q4'] },
+        });
+        expect(r.provenance?.models).toEqual(['clip-vit-base-patch32-q4']);
+    });
+
+    it('drops empty model entries supplied by a tool', () => {
+        const r = useContestationStore.getState().add({
+            toolId: 'X',
+            route: '/x',
+            outputSummary: 's',
+            category: 'other',
+            note: 'n',
+            provenance: { models: ['', 'real-model', ''] },
+        });
+        expect(r.provenance?.models).toEqual(['real-model']);
+    });
+});
+
+describe('category management', () => {
+    it('seeds the five defaults at first construction', () => {
+        const ids = useContestationStore.getState().categories.map((c) => c.id);
+        expect(ids).toContain('erasure');
+        expect(ids).toContain('stereotype');
+        expect(ids).toContain('mislabel');
+        expect(ids).toContain('disagreement');
+        expect(ids).toContain('other');
+    });
+
+    it('addCategory appends a slugged id and the colour', () => {
+        const def = useContestationStore.getState().addCategory({
+            label: 'Misattribution',
+            color: '#123456',
+        });
+        expect(def.id).toBe('misattribution');
+        expect(def.color).toBe('#123456');
+        expect(useContestationStore.getState().categories.find((c) => c.id === 'misattribution')).toBeDefined();
+    });
+
+    it('addCategory suffixes a counter on id collision', () => {
+        const a = useContestationStore.getState().addCategory({ label: 'Stereotype', color: '#000' });
+        const b = useContestationStore.getState().addCategory({ label: 'Stereotype', color: '#111' });
+        expect(a.id).not.toBe(b.id);
+        expect(b.id).toMatch(/^stereotype-\d+$/);
+    });
+
+    it('renameCategory and setCategoryColor mutate only the matching id', () => {
+        useContestationStore.getState().renameCategory('other', 'Misc');
+        useContestationStore.getState().setCategoryColor('other', '#abcdef');
+        const def = useContestationStore.getState().categories.find((c) => c.id === 'other');
+        expect(def?.label).toBe('Misc');
+        expect(def?.color).toBe('#abcdef');
+    });
+
+    it('removeCategory blocks defaults', () => {
+        const result = useContestationStore.getState().removeCategory('erasure');
+        expect(result).toEqual({ ok: false, reason: 'is-default', categoryLabel: 'Erasure' });
+    });
+
+    it('removeCategory blocks an in-use category and reports the count', () => {
+        const def = useContestationStore.getState().addCategory({ label: 'Misattr', color: '#123' });
+        useContestationStore.getState().add({
+            toolId: 'X',
+            route: '/x',
+            outputSummary: 's',
+            category: def.id,
+            note: 'n',
+        });
+        useContestationStore.getState().add({
+            toolId: 'X',
+            route: '/x',
+            outputSummary: 's',
+            category: def.id,
+            note: 'n',
+        });
+        const result = useContestationStore.getState().removeCategory(def.id);
+        expect(result).toEqual({
+            ok: false,
+            reason: 'in-use',
+            usageCount: 2,
+            categoryLabel: 'Misattr',
+        });
+        // Category still present after a blocked removal.
+        expect(useContestationStore.getState().categories.some((c) => c.id === def.id)).toBe(true);
+    });
+
+    it('removeCategory succeeds for an unused custom category', () => {
+        const def = useContestationStore.getState().addCategory({ label: 'Misattr', color: '#123' });
+        const result = useContestationStore.getState().removeCategory(def.id);
+        expect(result).toEqual({ ok: true });
+        expect(useContestationStore.getState().categories.some((c) => c.id === def.id)).toBe(false);
+    });
+
+    it('restoreDefaultCategories re-adds any missing default and keeps user-added ones', () => {
+        // Simulate a state where a default went missing (not user-reachable today,
+        // but the migration path / future actions could produce it).
+        useContestationStore.setState((s) => ({
+            categories: s.categories.filter((c) => c.id !== 'mislabel'),
+        }));
+        useContestationStore.getState().addCategory({ label: 'Custom', color: '#000' });
+        useContestationStore.getState().restoreDefaultCategories();
+        const ids = useContestationStore.getState().categories.map((c) => c.id);
+        expect(ids).toContain('mislabel');
+        expect(ids).toContain('custom');
     });
 });
 

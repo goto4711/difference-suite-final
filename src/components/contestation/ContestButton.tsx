@@ -1,12 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MessageSquareWarning, X } from 'lucide-react';
 import {
-    CONTESTATION_CATEGORIES,
-    CONTESTATION_CATEGORY_LABEL,
     CONTESTATION_NOTE_MAX,
     useContestationStore,
-    type ContestationCategory,
 } from '../../stores/contestationStore';
 
 interface ContestButtonProps {
@@ -16,6 +13,15 @@ interface ContestButtonProps {
     outputSummary: string;
     /** Optional tool-state snapshot (e.g. { threshold: 0.8 }). */
     settings?: Record<string, string | number>;
+    /**
+     * Optional list of model ids the tool actually used to produce the
+     * contested output (e.g. ['clip-vit-base-patch32-q4'] for Imagination
+     * Inspector). Recorded into the contestation's provenance so a packet
+     * can be reproduced. Omit if the tool does not invoke a registered
+     * model — the provenance entry stays empty rather than substituting
+     * a misleading suite-level default.
+     */
+    models?: string[];
     /** Optional override label for the trigger button. */
     label?: string;
     /** Compact rendering (icon-only trigger). */
@@ -24,7 +30,7 @@ interface ContestButtonProps {
     className?: string;
 }
 
-const INITIAL_CATEGORY: ContestationCategory = 'disagreement';
+const INITIAL_CATEGORY_ID = 'disagreement';
 
 /**
  * Quiet "Contest this" button + dialog. Writes a ContestationRecord scoped
@@ -35,20 +41,39 @@ const ContestButton = ({
     toolId,
     outputSummary,
     settings,
+    models,
     label = 'Contest this',
     compact = false,
     className = '',
 }: ContestButtonProps) => {
     const location = useLocation();
     const add = useContestationStore((s) => s.add);
+    const categories = useContestationStore((s) => s.categories);
     const dialogRef = useRef<HTMLDialogElement | null>(null);
     const noteRef = useRef<HTMLTextAreaElement | null>(null);
     const formId = useId();
 
-    const [category, setCategory] = useState<ContestationCategory>(INITIAL_CATEGORY);
+    const initialCategory = useMemo(
+        () =>
+            categories.find((c) => c.id === INITIAL_CATEGORY_ID)?.id ??
+            categories[0]?.id ??
+            INITIAL_CATEGORY_ID,
+        [categories],
+    );
+
+    const [category, setCategory] = useState<string>(initialCategory);
     const [note, setNote] = useState('');
     const [author, setAuthor] = useState('');
     const [confirmed, setConfirmed] = useState(false);
+
+    // If the user deletes the category currently selected in the dialog
+    // (possible since the Manage Categories panel is live), fall back to a
+    // valid one without crashing.
+    useEffect(() => {
+        if (!categories.some((c) => c.id === category)) {
+            setCategory(initialCategory);
+        }
+    }, [categories, category, initialCategory]);
 
     const open = () => {
         setConfirmed(false);
@@ -75,7 +100,7 @@ const ContestButton = ({
     };
 
     const reset = () => {
-        setCategory(INITIAL_CATEGORY);
+        setCategory(initialCategory);
         setNote('');
         setAuthor('');
     };
@@ -92,6 +117,7 @@ const ContestButton = ({
             note: trimmed,
             settings,
             author: author.trim() || undefined,
+            provenance: models && models.length > 0 ? { models } : undefined,
         });
         setConfirmed(true);
         reset();
@@ -205,14 +231,12 @@ const ContestButton = ({
                                 <select
                                     id={`${formId}-category`}
                                     value={category}
-                                    onChange={(e) =>
-                                        setCategory(e.target.value as ContestationCategory)
-                                    }
+                                    onChange={(e) => setCategory(e.target.value)}
                                     className="deep-input w-full text-sm"
                                 >
-                                    {CONTESTATION_CATEGORIES.map((c) => (
-                                        <option key={c} value={c}>
-                                            {CONTESTATION_CATEGORY_LABEL[c]}
+                                    {categories.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.label}
                                         </option>
                                     ))}
                                 </select>

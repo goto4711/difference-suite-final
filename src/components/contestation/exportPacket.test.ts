@@ -8,7 +8,10 @@ import {
 } from './exportPacket';
 import {
     CONTESTATION_PACKET_SCHEMA,
+    CONTESTATION_PACKET_SCHEMA_V2,
+    DEFAULT_CATEGORIES,
     isContestationPacket,
+    type CategoryDefinition,
     type ContestationRecord,
 } from '../../stores/contestationStore';
 
@@ -26,11 +29,13 @@ const rec = (overrides: Partial<ContestationRecord> = {}): ContestationRecord =>
 });
 
 describe('exportPacket — JSON', () => {
-    it('produces a v1 packet that validates against the runtime guard', () => {
+    it('produces a v2 packet that validates against the runtime guard', () => {
         const packet = buildJsonPacket([rec(), rec({ id: 'r2', toolId: 'SemanticOracle' })]);
         expect(packet.schema).toBe(CONTESTATION_PACKET_SCHEMA);
+        expect(packet.schema).toBe(CONTESTATION_PACKET_SCHEMA_V2);
         expect(packet.records).toHaveLength(2);
         expect(typeof packet.exported).toBe('number');
+        expect(packet.categories).toEqual(DEFAULT_CATEGORIES);
         expect(isContestationPacket(packet)).toBe(true);
     });
 
@@ -38,6 +43,15 @@ describe('exportPacket — JSON', () => {
         const packet = buildJsonPacket([]);
         expect(packet.records).toEqual([]);
         expect(isContestationPacket(packet)).toBe(true);
+    });
+
+    it('embeds the supplied custom category definitions', () => {
+        const custom: CategoryDefinition = { id: 'misattribution', label: 'Misattribution', color: '#0f766e' };
+        const packet = buildJsonPacket(
+            [rec({ category: 'misattribution' })],
+            [...DEFAULT_CATEGORIES, custom],
+        );
+        expect(packet.categories).toContainEqual(custom);
     });
 });
 
@@ -85,6 +99,30 @@ describe('exportPacket — HTML', () => {
     it('renders an empty-state summary when there are no records', () => {
         const html = buildHtmlPacket([]);
         expect(html).toContain('No contestations recorded.');
+    });
+
+    it('renders a custom category id with the supplied label and colour', () => {
+        const custom: CategoryDefinition = { id: 'misattribution', label: 'Misattribution', color: '#0f766e' };
+        const html = buildHtmlPacket(
+            [rec({ category: 'misattribution' })],
+            [...DEFAULT_CATEGORIES, custom],
+        );
+        expect(html).toContain('Misattribution');
+        expect(html).toContain('#0f766e');
+    });
+
+    it('renders provenance when present on a record', () => {
+        const html = buildHtmlPacket([
+            rec({
+                provenance: {
+                    appCommit: 'abc1234',
+                    appVersion: '1.2.3',
+                    models: ['clip-vit-base-patch32-q4'],
+                },
+            }),
+        ]);
+        expect(html).toContain('abc1234');
+        expect(html).toContain('clip-vit-base-patch32-q4');
     });
 });
 

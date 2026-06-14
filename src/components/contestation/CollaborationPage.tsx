@@ -8,11 +8,11 @@ import {
     Users,
 } from 'lucide-react';
 import {
-    CONTESTATION_CATEGORY_LABEL,
+    getPacketCategories,
     isContestationPacket,
     mergeRecords,
     useContestationStore,
-    type ContestationCategory,
+    type CategoryDefinition,
     type ContestationRecord,
 } from '../../stores/contestationStore';
 import {
@@ -28,14 +28,13 @@ import {
     matrixKey,
     type Participant,
 } from './workshopHelpers';
-
-const CATEGORY_DOT: Record<ContestationCategory, string> = {
-    erasure: 'bg-violet-500',
-    stereotype: 'bg-red-500',
-    mislabel: 'bg-amber-500',
-    disagreement: 'bg-sky-500',
-    other: 'bg-gray-500',
-};
+import {
+    chipStyle,
+    isCustomCategory,
+    lookupCategory,
+    mergeCategoryDefs,
+    solidStyle,
+} from './categoryStyle';
 
 const PARTICIPANT_COLORS = [
     '#dc2626', // red
@@ -81,6 +80,8 @@ interface ImportedPacket {
     filename: string;
     records: ContestationRecord[];
     label: string;
+    /** Categories embedded in the source packet; null for v1 packets. */
+    categories: CategoryDefinition[] | null;
 }
 
 const ThresholdSpreadView = ({ participants }: { participants: Participant[] }) => {
@@ -112,7 +113,6 @@ const ThresholdSpreadView = ({ participants }: { participants: Participant[] }) 
                         </span>
                     </div>
                     <div className="relative h-10 bg-gradient-to-r from-green-50 via-gray-50 to-red-50 border border-gray-200 rounded">
-                        {/* axis labels */}
                         <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-bold text-text-muted">
                             0.5
                         </span>
@@ -149,7 +149,13 @@ const ThresholdSpreadView = ({ participants }: { participants: Participant[] }) 
     );
 };
 
-const ContestationMatrixView = ({ participants }: { participants: Participant[] }) => {
+const ContestationMatrixView = ({
+    participants,
+    categories,
+}: {
+    participants: Participant[];
+    categories: CategoryDefinition[];
+}) => {
     const matrix = useMemo(() => buildMatrix(participants), [participants]);
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
@@ -220,15 +226,30 @@ const ContestationMatrixView = ({ participants }: { participants: Participant[] 
                                         {expanded && (
                                             <div className="mt-1 flex flex-wrap gap-1 justify-center">
                                                 {Object.entries(cell.categories).map(
-                                                    ([cat, n]) => (
-                                                        <span
-                                                            key={cat}
-                                                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-white ${CATEGORY_DOT[cat as ContestationCategory]}`}
-                                                        >
-                                                            {CONTESTATION_CATEGORY_LABEL[cat as ContestationCategory]}
-                                                            <span className="font-bold">{n}</span>
-                                                        </span>
-                                                    ),
+                                                    ([catId, n]) => {
+                                                        const def = lookupCategory(catId, categories);
+                                                        const isCustom = isCustomCategory(def);
+                                                        return (
+                                                            <span
+                                                                key={catId}
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-white"
+                                                                style={{
+                                                                    ...solidStyle(def.color),
+                                                                    ...(isCustom
+                                                                        ? { border: '1px dashed #ffffff80' }
+                                                                        : {}),
+                                                                }}
+                                                                title={
+                                                                    isCustom
+                                                                        ? `${def.label} (custom)`
+                                                                        : def.label
+                                                                }
+                                                            >
+                                                                {def.label}
+                                                                <span className="font-bold">{n}</span>
+                                                            </span>
+                                                        );
+                                                    },
                                                 )}
                                             </div>
                                         )}
@@ -245,6 +266,7 @@ const ContestationMatrixView = ({ participants }: { participants: Participant[] 
 
 const CollaborationPage = () => {
     const localRecords = useContestationStore((s) => s.records);
+    const localCategories = useContestationStore((s) => s.categories);
 
     const [imported, setImported] = useState<ImportedPacket[]>([]);
     const [errors, setErrors] = useState<ImportError[]>([]);
@@ -275,10 +297,23 @@ const CollaborationPage = () => {
             });
         }
         return list;
-        // localRecords is from a zustand subscription; including the array
-        // reference is sufficient, importedSignature changes when imports change.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [importedSignature, includeLocal, localRecords]);
+
+    /**
+     * Union of category definitions across local + imported packets. Local
+     * defs win on id collision so a workshop facilitator's category palette
+     * stays consistent; foreign categories that have no embedded definition
+     * (v1 packets, or a v2 packet missing the field) fall through to the
+     * deterministic hash-colour fallback at render time.
+     */
+    const mergedCategories = useMemo(() => {
+        return mergeCategoryDefs([
+            localCategories,
+            ...imported.map((p) => p.categories ?? []),
+        ]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [importedSignature, localCategories]);
 
     const handleFiles = async (files: FileList | File[]) => {
         const list = Array.from(files);
@@ -293,7 +328,7 @@ const CollaborationPage = () => {
                 if (!isContestationPacket(parsed)) {
                     rejected.push({
                         filename: file.name,
-                        message: 'Not a Difference Suite contestation packet (schema v1).',
+                        message: 'Not a Difference Suite contestation packet (schema v1 or v2).',
                     });
                     continue;
                 }
@@ -302,6 +337,7 @@ const CollaborationPage = () => {
                     filename: file.name,
                     records: parsed.records,
                     label: deriveParticipantLabel(parsed.records, file.name),
+                    categories: getPacketCategories(parsed),
                 });
             } catch (err) {
                 rejected.push({
@@ -325,12 +361,18 @@ const CollaborationPage = () => {
         setImported((prev) => prev.filter((p) => p.id !== id));
     };
 
+    const handleClearImports = () => {
+        if (imported.length === 0) return;
+        setImported([]);
+        setErrors([]);
+    };
+
     const mergedRecords = useMemo(() => {
         return mergeRecords(participants.map((p) => p.records));
     }, [participants]);
 
     const handleExportJson = () => {
-        const packet = buildJsonPacket(mergedRecords);
+        const packet = buildJsonPacket(mergedRecords, mergedCategories);
         downloadBlob(
             JSON.stringify(packet, null, 2),
             'application/json',
@@ -339,7 +381,7 @@ const CollaborationPage = () => {
     };
 
     const handleExportHtml = () => {
-        const html = buildHtmlPacket(mergedRecords);
+        const html = buildHtmlPacket(mergedRecords, mergedCategories);
         downloadBlob(html, 'text/html;charset=utf-8', `collaboration-${htmlPacketFilename()}`);
     };
 
@@ -429,17 +471,30 @@ const CollaborationPage = () => {
                     <h2 className="text-sm font-bold text-main uppercase tracking-wider">
                         Participants ({participants.length})
                     </h2>
-                    {localRecords.length > 0 && (
-                        <label className="flex items-center gap-2 text-xs text-text-muted">
-                            <input
-                                type="checkbox"
-                                checked={includeLocal}
-                                onChange={(e) => setIncludeLocal(e.target.checked)}
-                                className="rounded"
-                            />
-                            Include my local contestations ({localRecords.length})
-                        </label>
-                    )}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {localRecords.length > 0 && (
+                            <label className="flex items-center gap-2 text-xs text-text-muted">
+                                <input
+                                    type="checkbox"
+                                    checked={includeLocal}
+                                    onChange={(e) => setIncludeLocal(e.target.checked)}
+                                    className="rounded"
+                                />
+                                Include my local contestations ({localRecords.length})
+                            </label>
+                        )}
+                        {imported.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleClearImports}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-50 rounded"
+                                title="Remove all imported packets from this session"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                                Clear all imports
+                            </button>
+                        )}
+                    </div>
                 </header>
                 {participants.length === 0 ? (
                     <p className="text-xs text-text-muted italic">
@@ -491,9 +546,28 @@ const CollaborationPage = () => {
                 </h2>
                 <p className="text-[11px] text-text-muted mb-3">
                     Where in the suite does the group's friction concentrate? Click a cell to
-                    see its category breakdown.
+                    see its category breakdown. Categories with a dashed border are custom — added
+                    by participants or imported from a packet.
                 </p>
-                <ContestationMatrixView participants={participants} />
+                <ContestationMatrixView participants={participants} categories={mergedCategories} />
+                {mergedCategories.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                        {mergedCategories.map((def) => (
+                            <span
+                                key={def.id}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]"
+                                style={chipStyle(def.color)}
+                                title={isCustomCategory(def) ? `${def.label} (custom)` : def.label}
+                            >
+                                <span
+                                    className="inline-block w-2 h-2 rounded-full"
+                                    style={solidStyle(def.color)}
+                                />
+                                {def.label}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">

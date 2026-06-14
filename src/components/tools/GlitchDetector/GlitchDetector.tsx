@@ -183,6 +183,7 @@ const GlitchDetectorImage = ({ setInputMode }: { setInputMode: (m: InputMode) =>
             ? `${selectedItem.name} scored ${(confidence * 100).toFixed(0)}% normality at threshold ${threshold.toFixed(2)} → ${isAnomaly ? 'GLITCH DETECTED' : 'Normal'}`
             : null,
         settings: hasVerdict ? { threshold: Number(threshold.toFixed(2)) } : undefined,
+        models: hasVerdict ? ['resnet-50'] : undefined,
     });
 
     const mainContent = (

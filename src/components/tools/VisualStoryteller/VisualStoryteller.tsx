@@ -126,6 +126,7 @@ const VisualStoryteller = () => {
                   .filter(Boolean)
                   .join('\n')
             : null,
+        models: caption ? ['florence-2-base-ft', 'smollm2-135m-instruct'] : undefined,
     });
 
     const mainContent = (

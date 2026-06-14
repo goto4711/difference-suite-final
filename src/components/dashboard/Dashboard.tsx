@@ -4,20 +4,29 @@ import { CollectionSidebar } from '@difference-suite/shared/components/dashboard
 import { DataGrid } from '@difference-suite/shared/components/dashboard/DataGrid';
 import { ContextPanel } from '@difference-suite/shared/components/dashboard/ContextPanel';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FolderUp, Camera, Mic } from 'lucide-react';
+import { Upload, FolderUp, Camera, Mic, Download, Save, FolderOpen } from 'lucide-react';
 import type { DataItem } from '@difference-suite/shared/types';
 import { WebcamModal } from '@difference-suite/shared/components/dashboard/modals/WebcamModal';
 import { AudioRecorderModal } from './modals/AudioRecorderModal';
+import DatasetExportModal from '../dataset/DatasetExportModal';
+import ProjectSaveLoadModal from '../project/ProjectSaveLoadModal';
 
 type DirectoryInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
     webkitdirectory?: string;
 };
 
 export const Dashboard: React.FC = () => {
-    const { dataset, addItems, createCollection } = useSuiteStore();
+    const { dataset, addItems, createCollection, collections } = useSuiteStore();
     const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
     const [isWebcamOpen, setIsWebcamOpen] = useState(false);
     const [isMicOpen, setIsMicOpen] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [projectModal, setProjectModal] = useState<null | 'save' | 'open'>(null);
+
+    const activeCollection = useMemo(
+        () => (activeCollectionId ? collections.find((c) => c.id === activeCollectionId) ?? null : null),
+        [collections, activeCollectionId],
+    );
 
     // Filter items by collection
     const filteredItems = useMemo(() => {
@@ -184,6 +193,33 @@ export const Dashboard: React.FC = () => {
                         </button>
                         <div className="w-px h-6 bg-main/20 mx-1" />
 
+                        <button
+                            onClick={() => setProjectModal('save')}
+                            className="flex items-center justify-center w-9 h-9 border-2 border-transparent hover:border-main bg-transparent hover:bg-white text-main transition-all"
+                            title="Save the whole session (corpus + collections + contestations + settings) as a JSON project file"
+                        >
+                            <Save className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setProjectModal('open')}
+                            className="flex items-center justify-center w-9 h-9 border-2 border-transparent hover:border-main bg-transparent hover:bg-white text-main transition-all"
+                            title="Open a project file (replaces the current session)"
+                        >
+                            <FolderOpen className="w-5 h-5" />
+                        </button>
+                        <div className="w-px h-6 bg-main/20 mx-1" />
+
+                        {activeCollection && filteredItems.length > 0 && (
+                            <button
+                                onClick={() => setIsExportOpen(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase text-sm transition-transform hover:-translate-y-0.5 border-2 border-main bg-white text-main shadow-[2px_2px_0px_rgba(0,0,0,0.1)]"
+                                title={`Export "${activeCollection.name}" as a documented dataset bundle`}
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Export "{activeCollection.name}"</span>
+                            </button>
+                        )}
+
                         {/* Hidden Folder Input Hack */}
                         <div className="relative overflow-hidden inline-block">
                             <button className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase text-sm transition-transform hover:-translate-y-0.5 border-2 border-main bg-white text-main shadow-[2px_2px_0px_rgba(0,0,0,0.1)]">
@@ -235,6 +271,21 @@ export const Dashboard: React.FC = () => {
                     isOpen={isMicOpen}
                     onClose={() => setIsMicOpen(false)}
                     onCapture={handleMediaCapture}
+                />
+            )}
+            {isExportOpen && activeCollection && (
+                <DatasetExportModal
+                    collection={activeCollection}
+                    items={filteredItems}
+                    open={isExportOpen}
+                    onClose={() => setIsExportOpen(false)}
+                />
+            )}
+            {projectModal && (
+                <ProjectSaveLoadModal
+                    open={projectModal !== null}
+                    initialTab={projectModal}
+                    onClose={() => setProjectModal(null)}
                 />
             )}
         </div>

@@ -14,6 +14,23 @@ const isTensorLike = (value: unknown): value is TensorLike<unknown> =>
 const asObject = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
 
+/**
+ * Prefix text inputs for e5-family embedding models.
+ *
+ * The intfloat e5 model card prescribes 'query: ' on both sides for symmetric
+ * tasks (similarity, clustering, KNN, latent interpolation — every text tool
+ * in this suite) and 'query: '/'passage: ' only for asymmetric retrieval.
+ * We apply 'query: ' uniformly so vectors stay comparable.
+ *
+ * Exported for tests. Production code calls it inline.
+ */
+export function applyE5Prefix(modelId: string, input: string | string[]): string | string[] {
+  if (!modelId.includes('e5')) return input;
+  return Array.isArray(input)
+    ? input.map((t) => `query: ${t}`)
+    : `query: ${input}`;
+}
+
 type DirectModelFn = (inputs: Record<string, unknown>) => Promise<Record<string, unknown>>;
 type DirectTokenizerFn = (text: string | string[], opts: Record<string, unknown>) => Promise<Record<string, unknown>>;
 type DirectProcessorFn = (image: unknown) => Promise<Record<string, unknown>>;
@@ -141,13 +158,15 @@ registerHandler({
       return { id: request.id, output: finalOutput };
     }
 
-    // ── Standard single-modal models (BERT, BGE, etc.) ────────────────────────
+    // ── Standard single-modal models (BERT, BGE, E5, etc.) ────────────────────
     const input = payload.texts ?? payload.text ?? '';
+    const prefixed = applyE5Prefix(request.model, input);
+
     const pipelineOptions = {
       pooling: payload.pooling ?? 'mean',
       normalize: payload.normalize ?? true,
     };
-    const result = await pipe(input, pipelineOptions);
+    const result = await pipe(prefixed, pipelineOptions);
 
     const outputList = isTensorLike(result) ? result.tolist() : result;
     const finalOutput = Array.isArray(payload.texts) || !Array.isArray(outputList)

@@ -25,6 +25,8 @@ const resetStore = () => {
         embeddingModelVersion: null,
         isAuthenticated: false,
         userEmail: null,
+        textEmbeddingModel: 'multilingual-e5-small',
+        asrModel: 'whisper-base',
     });
     localStorage.clear();
 };
@@ -57,6 +59,33 @@ describe('useSuiteStore', () => {
         expect(useSuiteStore.getState().dataset[0].analysisResults).toEqual({
             SemanticOracle: { summary: 'matched' },
         });
+    });
+
+    it('switching the text embedding model invalidates cached item embeddings', () => {
+        const item = makeTextItem('item-1');
+        useSuiteStore.getState().addItem(item);
+        useSuiteStore.setState((state) => ({
+            dataset: state.dataset.map((d) => ({ ...d, embedding: [0.1, 0.2, 0.3] })),
+        }));
+        expect(useSuiteStore.getState().dataset[0].embedding).toEqual([0.1, 0.2, 0.3]);
+
+        useSuiteStore.getState().setTextEmbeddingModel('bge-small-en-v1.5');
+
+        expect(useSuiteStore.getState().textEmbeddingModel).toBe('bge-small-en-v1.5');
+        expect(useSuiteStore.getState().dataset[0].embedding).toBeUndefined();
+    });
+
+    it('switching the ASR model does not touch cached embeddings', () => {
+        const item = makeTextItem('item-1');
+        useSuiteStore.getState().addItem(item);
+        useSuiteStore.setState((state) => ({
+            dataset: state.dataset.map((d) => ({ ...d, embedding: [0.4, 0.5] })),
+        }));
+
+        useSuiteStore.getState().setAsrModel('whisper-tiny-en');
+
+        expect(useSuiteStore.getState().asrModel).toBe('whisper-tiny-en');
+        expect(useSuiteStore.getState().dataset[0].embedding).toEqual([0.4, 0.5]);
     });
 
     it('clears dataset, collections, and selection state together', () => {

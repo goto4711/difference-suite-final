@@ -53,9 +53,18 @@ describe('deriveParticipantLabel', () => {
 });
 
 describe('packet import validation', () => {
-    it('accepts a v1 schema packet', () => {
+    it('accepts a v2 schema packet (current default)', () => {
         const packet = buildPacket([rec()]);
         expect(isContestationPacket(packet)).toBe(true);
+    });
+
+    it('accepts a legacy v1 schema packet for back-compat import', () => {
+        const v1 = {
+            schema: 'difference-suite-contestations@1' as const,
+            exported: 1,
+            records: [rec()],
+        };
+        expect(isContestationPacket(v1)).toBe(true);
     });
 
     it('rejects malformed payloads', () => {
@@ -63,6 +72,21 @@ describe('packet import validation', () => {
         expect(isContestationPacket({ schema: 'difference-suite-contestations@1' })).toBe(false);
         expect(isContestationPacket(null)).toBe(false);
         expect(isContestationPacket('packet')).toBe(false);
+    });
+});
+
+describe('buildMatrix with custom category ids', () => {
+    it('counts arbitrary category strings without complaint', () => {
+        const p = participant('alice', 'AB', [
+            rec({ id: 'r1', category: 'misattribution' }),
+            rec({ id: 'r2', category: 'misattribution' }),
+            rec({ id: 'r3', category: 'erasure' }),
+        ]);
+        const matrix = buildMatrix([p]);
+        const cell = matrix.cells.get(matrixKey('GlitchDetector', 'alice'));
+        expect(cell?.count).toBe(3);
+        expect(cell?.categories.misattribution).toBe(2);
+        expect(cell?.categories.erasure).toBe(1);
     });
 });
 

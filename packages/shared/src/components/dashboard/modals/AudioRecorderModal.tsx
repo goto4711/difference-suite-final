@@ -6,6 +6,26 @@ export interface AudioTranscriptionUpdate {
     progress?: number;
 }
 
+/** Whisper-supported language hint. 'auto' lets Whisper detect from the audio. */
+export type AsrLanguage =
+    | 'auto'
+    | 'english'
+    | 'german'
+    | 'dutch'
+    | 'french'
+    | 'spanish'
+    | 'italian';
+
+const ASR_LANGUAGES: { value: AsrLanguage; label: string }[] = [
+    { value: 'auto', label: 'Auto-detect' },
+    { value: 'english', label: 'English' },
+    { value: 'german', label: 'German' },
+    { value: 'dutch', label: 'Dutch' },
+    { value: 'french', label: 'French' },
+    { value: 'spanish', label: 'Spanish' },
+    { value: 'italian', label: 'Italian' },
+];
+
 export interface AudioRecorderModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -14,6 +34,7 @@ export interface AudioRecorderModalProps {
     transcribeAudio: (
         audioBlob: Blob,
         onUpdate: (update: AudioTranscriptionUpdate) => void,
+        language: AsrLanguage,
     ) => Promise<string>;
 }
 
@@ -32,6 +53,7 @@ export const AudioRecorderModal = ({
     const [transcriptionProgress, setTranscriptionProgress] = useState(0);
     const [transcriptionStatus, setTranscriptionStatus] = useState<string>('');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [language, setLanguage] = useState<AsrLanguage>('auto');
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
@@ -128,10 +150,14 @@ export const AudioRecorderModal = ({
         setTranscriptionProgress(0);
 
         try {
-            const text = await transcribeAudio(audioBlob, ({ status, progress }) => {
-                setTranscriptionStatus(status);
-                setTranscriptionProgress(progress ?? 0);
-            });
+            const text = await transcribeAudio(
+                audioBlob,
+                ({ status, progress }) => {
+                    setTranscriptionStatus(status);
+                    setTranscriptionProgress(progress ?? 0);
+                },
+                language,
+            );
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const file = new File([text], `transcript-${timestamp}.txt`, { type: 'text/plain' });
@@ -212,6 +238,24 @@ export const AudioRecorderModal = ({
                                 <div className="w-full bg-white p-3 rounded border border-main/20 text-center">
                                     <p className="text-xs font-bold text-main/60 uppercase mb-2">Review</p>
                                     <audio controls src={previewUrl} className="w-full h-8" />
+                                </div>
+                            )}
+
+                            {!isRecording && (
+                                <div className="w-full flex items-center gap-2 text-xs">
+                                    <label htmlFor="asr-language" className="font-bold text-main/60 uppercase tracking-wider">
+                                        Language
+                                    </label>
+                                    <select
+                                        id="asr-language"
+                                        value={language}
+                                        onChange={(e) => setLanguage(e.target.value as AsrLanguage)}
+                                        className="flex-1 border border-main/20 rounded px-2 py-1 bg-white font-medium"
+                                    >
+                                        {ASR_LANGUAGES.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             )}
                         </>

@@ -1,9 +1,16 @@
 import type { ModelConfig } from './types';
 
-// Bump this string whenever the BGE embedding model path or quantization changes.
+// Bump this string whenever the default embedding model path or quantization changes.
 // setEmbeddingModelVersion(EMBEDDING_MODEL_VERSION) wipes stored item.embedding values
 // so cached embeddings from a previous model are not silently used with a new one.
-export const EMBEDDING_MODEL_VERSION = 'onnx-community/bge-small-en-v1.5-ONNX@q4';
+export const EMBEDDING_MODEL_VERSION = 'Xenova/multilingual-e5-small@q4';
+
+// Default text-embedding model used at first load. After Phase 2 the active
+// embedding model lives in the persisted suiteStore (`textEmbeddingModel`).
+// Tools read the live id at call time via useSuiteStore.getState(); this
+// constant only exists so the initial Zustand state can default to it.
+export const DEFAULT_TEXT_EMBEDDING_MODEL = 'multilingual-e5-small';
+export const DEFAULT_ASR_MODEL = 'whisper-base';
 
 /**
  * Central model registry.
@@ -53,6 +60,22 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     isLargeModel: false,
   },
   {
+    // Multilingual drop-in for bge-small-en-v1.5. 384-dim output matches bge's width,
+    // so KNN classifiers, autoencoders, and 2-D projections downstream keep working.
+    // ONNX q4 weights live at Xenova/multilingual-e5-small/onnx/model_q4.onnx (~399 MB).
+    // Inputs need a 'query: ' or 'passage: ' prefix — handled in featureExtraction.ts.
+    id: 'multilingual-e5-small',
+    name: 'Multilingual E5 Small',
+    hfPath: 'Xenova/multilingual-e5-small',
+    task: 'feature-extraction',
+    quantization: 'q4',
+    format: 'onnx',
+    recommendedDevice: 'wasm', // WebGPU crashes Worker at ORT init level (uncatchable); wasm only
+    memoryFootprintMB: 420,
+    enabled: true,
+    isLargeModel: false,
+  },
+  {
     id: 'clip-vit-base-patch32-q4',
     name: 'CLIP ViT-B/32',
     // Xenova/clip-vit-base-patch32 provides split text_model.onnx / vision_model.onnx files,
@@ -80,6 +103,36 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     format: 'onnx',
     recommendedDevice: 'wasm', // WebGPU crashes Worker at ORT init level (uncatchable); wasm only
     memoryFootprintMB: 150,
+    enabled: true,
+    isLargeModel: false,
+  },
+  {
+    // Multilingual ASR. encoder + decoder + decoder_with_past q4 weights total ~263 MB
+    // at onnx-community/whisper-base/onnx/. Covers ~100 languages — language can be
+    // passed through the inference payload, omit for auto-detect.
+    id: 'whisper-base',
+    name: 'Whisper Base (Multilingual)',
+    hfPath: 'onnx-community/whisper-base',
+    task: 'automatic-speech-recognition',
+    quantization: 'q4',
+    format: 'onnx',
+    recommendedDevice: 'wasm', // WebGPU crashes Worker at ORT init level (uncatchable); wasm only
+    memoryFootprintMB: 280,
+    enabled: true,
+    isLargeModel: false,
+  },
+  {
+    // Higher-accuracy multilingual ASR. Roughly 2× the download/footprint of
+    // whisper-base; selectable opt-in for users who hit accuracy ceilings on
+    // archaic vocabulary or unusual accents. Default ASR stays whisper-base.
+    id: 'whisper-small',
+    name: 'Whisper Small (Multilingual, higher accuracy)',
+    hfPath: 'onnx-community/whisper-small',
+    task: 'automatic-speech-recognition',
+    quantization: 'q4',
+    format: 'onnx',
+    recommendedDevice: 'wasm',
+    memoryFootprintMB: 470,
     enabled: true,
     isLargeModel: false,
   },

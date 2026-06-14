@@ -1,4 +1,7 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+
+const activeTextEmbeddingModel = () => useSuiteStore.getState().textEmbeddingModel;
 import * as tf from '@tensorflow/tfjs';
 import * as knnClassifier from '@tensorflow-models/knn-classifier';
 import { debug } from '../../../../utils/log';
@@ -24,7 +27,7 @@ class GlitchTextModelManager {
             const result = await transformersClient.run({
                 id: crypto.randomUUID(),
                 tool: 'GlitchDetector',
-                model: 'bge-small-en-v1.5',
+                model: activeTextEmbeddingModel(),
                 task: 'feature-extraction',
                 payload: { text }
             });
@@ -47,7 +50,7 @@ class GlitchTextModelManager {
         const result = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'GlitchDetector',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { text }
         });
@@ -65,7 +68,7 @@ class GlitchTextModelManager {
         const result = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'GlitchDetector',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { text }
         });

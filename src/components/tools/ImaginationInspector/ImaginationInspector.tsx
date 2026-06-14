@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Sparkles, User, Split, Maximize } from 'lucide-react';
+import { Sparkles, User, Split, Maximize, WifiOff } from 'lucide-react';
 import PromptInput from './components/PromptInput';
 import GenerationGrid from './components/GenerationGrid';
 import AbsenceReport from './components/AbsenceReport';
 import UnmatchedEmptyState from './components/UnmatchedEmptyState';
-import { generateImages, type GenerateOptions, type GeneratedResult } from './utils/GeneratorEngine';
+import { generateImages, type GenerateOptions, type GeneratedResult, type GenerateOutcome } from './utils/GeneratorEngine';
 import { analyzeBias } from './utils/BiasAnalyzer';
 import ToolLayout from '../../shared/ToolLayout';
 import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
@@ -34,18 +34,21 @@ const ImaginationInspector = () => {
     // empty state with suggestion chips instead of the grid. null = no
     // unmatched state for this side.
     interface UnmatchedState { prompt: string; suggestions: string[] }
+    interface OfflineState { prompt: string; reason: string }
 
     // Side A (Default)
     const [promptA, setPromptA] = useState('');
     const [resultsA, setResultsA] = useState<GeneratedResult[]>([]);
     const [reportA, setReportA] = useState<BiasReport | null>(null);
     const [unmatchedA, setUnmatchedA] = useState<UnmatchedState | null>(null);
+    const [offlineA, setOfflineA] = useState<OfflineState | null>(null);
 
     // Side B (Comparison)
     const [promptB, setPromptB] = useState('');
     const [resultsB, setResultsB] = useState<GeneratedResult[]>([]);
     const [reportB, setReportB] = useState<BiasReport | null>(null);
     const [unmatchedB, setUnmatchedB] = useState<UnmatchedState | null>(null);
+    const [offlineB, setOfflineB] = useState<OfflineState | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [adjectiveMode, setAdjectiveMode] = useState<'varied' | 'fixed'>('varied');
@@ -54,6 +57,34 @@ const ImaginationInspector = () => {
     // Voice Input State
     const [isMicOpen, setIsMicOpen] = useState(false);
     const [targetVoiceInput, setTargetVoiceInput] = useState<'A' | 'B'>('A');
+
+    interface PanelSetters {
+        setResults: (r: GeneratedResult[]) => void;
+        setReport: (r: BiasReport | null) => void;
+        setUnmatched: (s: UnmatchedState | null) => void;
+        setOffline: (s: OfflineState | null) => void;
+    }
+
+    const applyOutcome = (outcome: GenerateOutcome, s: PanelSetters) => {
+        // Reset siblings so a follow-up run cannot leave a stale offline /
+        // unmatched panel visible alongside fresh results.
+        s.setUnmatched(null);
+        s.setOffline(null);
+        if (outcome.kind === 'unmatched') {
+            s.setResults([]);
+            s.setReport(null);
+            s.setUnmatched({ prompt: outcome.prompt, suggestions: outcome.suggestions });
+            return;
+        }
+        if (outcome.kind === 'offline') {
+            s.setResults([]);
+            s.setReport(null);
+            s.setOffline({ prompt: outcome.prompt, reason: outcome.reason });
+            return;
+        }
+        s.setResults(outcome.results);
+        s.setReport(analyzeBias(outcome.results) as BiasReport | null);
+    };
 
     const handleGenerate = async () => {
         if (!promptA.trim() && !promptB.trim()) return;
@@ -64,28 +95,22 @@ const ImaginationInspector = () => {
             // Run A
             if (promptA.trim()) {
                 const outA = await generateImages(promptA, opts);
-                if (outA.kind === 'unmatched') {
-                    setUnmatchedA({ prompt: outA.prompt, suggestions: outA.suggestions });
-                    setResultsA([]);
-                    setReportA(null);
-                } else {
-                    setUnmatchedA(null);
-                    setResultsA(outA.results);
-                    setReportA(analyzeBias(outA.results) as BiasReport | null);
-                }
+                applyOutcome(outA, {
+                    setResults: setResultsA,
+                    setReport: setReportA,
+                    setUnmatched: setUnmatchedA,
+                    setOffline: setOfflineA,
+                });
             }
             // Run B if comparing
             if (mode === 'compare' && promptB.trim()) {
                 const outB = await generateImages(promptB, opts);
-                if (outB.kind === 'unmatched') {
-                    setUnmatchedB({ prompt: outB.prompt, suggestions: outB.suggestions });
-                    setResultsB([]);
-                    setReportB(null);
-                } else {
-                    setUnmatchedB(null);
-                    setResultsB(outB.results);
-                    setReportB(analyzeBias(outB.results) as BiasReport | null);
-                }
+                applyOutcome(outB, {
+                    setResults: setResultsB,
+                    setReport: setReportB,
+                    setUnmatched: setUnmatchedB,
+                    setOffline: setOfflineB,
+                });
             }
         } catch (error) {
             console.error("Generation failed:", error);
@@ -127,6 +152,7 @@ const ImaginationInspector = () => {
                   ...(adjectiveMode === 'fixed' ? { fixedAdjective } : {}),
               }
             : undefined,
+        models: hasOutput ? ['clip-vit-base-patch32-q4'] : undefined,
     });
 
     const renderPanel = (
@@ -135,6 +161,7 @@ const ImaginationInspector = () => {
         loading: boolean,
         prompt: string,
         unmatched: UnmatchedState | null,
+        offline: OfflineState | null,
         onPickSuggestion: (slug: string) => void,
     ) => (
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative transition-all duration-300">
@@ -153,6 +180,16 @@ const ImaginationInspector = () => {
                         suggestions={unmatched.suggestions}
                         onPick={onPickSuggestion}
                     />
+                ) : offline ? (
+                    <div className="h-full flex items-center justify-center text-text-muted flex-col gap-3 px-6 text-center">
+                        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
+                            <WifiOff className="opacity-40 text-[var(--color-main)]" size={32} />
+                        </div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-main)]/70">
+                            Image archive unavailable
+                        </p>
+                        <p className="text-[11px] leading-relaxed max-w-sm opacity-80">{offline.reason}</p>
+                    </div>
                 ) : results.length > 0 ? (
                     <GenerationGrid results={results} />
                 ) : (
@@ -218,13 +255,14 @@ const ImaginationInspector = () => {
                     loading,
                     promptA,
                     unmatchedA,
+                    offlineA,
                     setPromptA,
                 )}
 
                 {mode === 'compare' && (
                     <>
                         <div className="w-[1px] bg-gray-200 self-stretch my-4"></div>
-                        {renderPanel('Side B', resultsB, loading, promptB, unmatchedB, setPromptB)}
+                        {renderPanel('Side B', resultsB, loading, promptB, unmatchedB, offlineB, setPromptB)}
                     </>
                 )}
             </div>

@@ -35,6 +35,7 @@ const DEMO_TEXTS = [
 
 const DetailExtractor = () => {
     const { dataset, collections } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
 
     const [data, setData] = useState<DetailPoint[]>([]);
     const [selectedItem, setSelectedItem] = useState<DetailPoint | null>(null);
@@ -106,6 +107,7 @@ const DetailExtractor = () => {
                 ? `Clustered ${data.length} text items into ${clusterCount} clusters${selectedItem ? `; inspecting "${(selectedItem.content || '').slice(0, 120)}${selectedItem.content && selectedItem.content.length > 120 ? '…' : ''}"` : ''}`
                 : null,
         settings: data.length > 0 ? { items: data.length, clusters: clusterCount } : undefined,
+        models: data.length > 0 ? [textEmbeddingModel] : undefined,
     });
 
     const mainContent = (

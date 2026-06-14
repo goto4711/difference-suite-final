@@ -4,7 +4,8 @@ import ToolLayout from '../shared/ToolLayout';
 import { useMachineRoomStore, selectSessionCounts } from '../../stores/machineRoomStore';
 import { narrateEvent } from '../../utils/machineNarrator';
 import { transformersClient } from '../../core/inference/TransformersClient';
-import { MODEL_REGISTRY, getModelConfig } from '../../core/inference/modelRegistry';
+import { MODEL_REGISTRY, getModelConfig, getModelsForTask } from '../../core/inference/modelRegistry';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import type { MachineEvent, WorkerStatus } from '../../core/inference/types';
 
 const formatRelativeMs = (ts: number, now: number): string => {
@@ -313,6 +314,72 @@ const NowPanel = () => {
     );
 };
 
+// ── Defaults panel (active embedding + ASR model) ──────────────
+
+const DefaultsPanel = () => {
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
+    const asrModel = useSuiteStore((s) => s.asrModel);
+    const setTextEmbeddingModel = useSuiteStore((s) => s.setTextEmbeddingModel);
+    const setAsrModel = useSuiteStore((s) => s.setAsrModel);
+
+    // Feature-extraction models that go through the standard pipeline (skip CLIP,
+    // which has its own dedicated text+vision loader and isn't a drop-in
+    // embedding choice for text tools).
+    const embeddingModels = useMemo(
+        () => getModelsForTask('feature-extraction').filter((m) => !m.loader),
+        [],
+    );
+    const asrModels = useMemo(() => getModelsForTask('automatic-speech-recognition'), []);
+
+    return (
+        <section>
+            <header className="px-3 py-2 border-t border-b border-gray-200 bg-white">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-main">Defaults</h3>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                    Which model each tool reaches for. Persisted across reloads.
+                </p>
+            </header>
+            <div className="p-3 space-y-3 text-xs">
+                <label className="block">
+                    <span className="block font-bold text-text-muted uppercase tracking-wider text-[10px] mb-1">
+                        Text embedding
+                    </span>
+                    <select
+                        value={textEmbeddingModel}
+                        onChange={(e) => setTextEmbeddingModel(e.target.value)}
+                        className="w-full border border-gray-300 px-2 py-1 bg-white"
+                        aria-label="Text embedding model"
+                    >
+                        {embeddingModels.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                    </select>
+                    <p className="text-[10px] text-text-muted mt-1 leading-snug">
+                        Changing this clears every cached item embedding — they aren't
+                        comparable across models.
+                    </p>
+                </label>
+
+                <label className="block">
+                    <span className="block font-bold text-text-muted uppercase tracking-wider text-[10px] mb-1">
+                        Speech recognition
+                    </span>
+                    <select
+                        value={asrModel}
+                        onChange={(e) => setAsrModel(e.target.value)}
+                        className="w-full border border-gray-300 px-2 py-1 bg-white"
+                        aria-label="Speech recognition model"
+                    >
+                        {asrModels.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                    </select>
+                </label>
+            </div>
+        </section>
+    );
+};
+
 // ── Fragility panel ─────────────────────────────────────────────
 
 const FragilityPanel = () => {
@@ -372,6 +439,7 @@ const MachineRoom = () => {
     const sideContent = (
         <div>
             <NowPanel />
+            <DefaultsPanel />
             <FragilityPanel />
         </div>
     );

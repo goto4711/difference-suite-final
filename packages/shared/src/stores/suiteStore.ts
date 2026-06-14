@@ -4,11 +4,22 @@ import type { Collection, DataItem, SuiteState } from '../types';
 import { deleteBlob, getBlob, saveBlob } from '../utils/blobStore';
 
 const STORAGE_NAME = 'difference-suite-storage';
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
+
+// Defaults — duplicated here rather than imported from src/core to keep
+// packages/shared free of app-internal dependencies. Must match the registry.
+const DEFAULT_TEXT_EMBEDDING_MODEL = 'multilingual-e5-small';
+const DEFAULT_ASR_MODEL = 'whisper-base';
 
 type PersistedStoreState = Pick<
     SuiteState,
-    'collections' | 'dataset' | 'embeddingModelVersion' | 'isAuthenticated' | 'userEmail'
+    | 'collections'
+    | 'dataset'
+    | 'embeddingModelVersion'
+    | 'isAuthenticated'
+    | 'userEmail'
+    | 'textEmbeddingModel'
+    | 'asrModel'
 >;
 
 const getBlobUrl = (content: DataItem['content']): string | null =>
@@ -54,7 +65,11 @@ const normalizePersistedState = (persistedState: unknown): PersistedStoreState =
         embeddingModelVersion:
             typeof state.embeddingModelVersion === 'string' ? state.embeddingModelVersion : null,
         isAuthenticated: state.isAuthenticated ?? false,
-        userEmail: typeof state.userEmail === 'string' ? state.userEmail : null
+        userEmail: typeof state.userEmail === 'string' ? state.userEmail : null,
+        textEmbeddingModel:
+            typeof state.textEmbeddingModel === 'string' ? state.textEmbeddingModel : DEFAULT_TEXT_EMBEDDING_MODEL,
+        asrModel:
+            typeof state.asrModel === 'string' ? state.asrModel : DEFAULT_ASR_MODEL
     };
 };
 
@@ -153,6 +168,24 @@ export const useSuiteStore = create<SuiteState>()(
             // Auth
             isAuthenticated: false,
             userEmail: null,
+
+            // Model selection (persisted)
+            textEmbeddingModel: DEFAULT_TEXT_EMBEDDING_MODEL,
+            asrModel: DEFAULT_ASR_MODEL,
+
+            setTextEmbeddingModel: (modelId) => set((state) => {
+                if (state.textEmbeddingModel === modelId) return state;
+                // Embeddings from one model are not comparable with another's.
+                // Wipe cached item.embedding values whenever the model changes.
+                return {
+                    textEmbeddingModel: modelId,
+                    dataset: state.dataset.map((item) => ({ ...item, embedding: undefined }))
+                };
+            }),
+
+            setAsrModel: (modelId) => set((state) =>
+                state.asrModel === modelId ? state : { asrModel: modelId }
+            ),
 
             login: (email) => set({ isAuthenticated: true, userEmail: email }),
             logout: () => set({ isAuthenticated: false, userEmail: null }),
@@ -324,7 +357,9 @@ export const useSuiteStore = create<SuiteState>()(
                 collections: state.collections,
                 embeddingModelVersion: state.embeddingModelVersion,
                 isAuthenticated: state.isAuthenticated,
-                userEmail: state.userEmail
+                userEmail: state.userEmail,
+                textEmbeddingModel: state.textEmbeddingModel,
+                asrModel: state.asrModel
             }),
             migrate: (persistedState) => normalizePersistedState(persistedState),
             onRehydrateStorage: () => (_state, error) => {

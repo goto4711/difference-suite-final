@@ -52,13 +52,8 @@ class ModelManager {
         const inputActivation = await this.extractFeature(tensor);
 
         const maxSim = tf.tidy(() => {
-            // Stack all examples into one tensor: [N, 512]
             const database = tf.concat(this.examples, 0);
-
-            // Normalize Input: [1, 512]
             const inputNorm = inputActivation.div(inputActivation.norm());
-
-            // Normalize Database: [N, 512]
             const databaseNorm = database.div(database.norm('euclidean', 1, true));
 
             // Cosine Similarity: [N, 1]

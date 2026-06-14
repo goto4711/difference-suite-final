@@ -1,4 +1,7 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
+
+const activeTextEmbeddingModel = () => useSuiteStore.getState().textEmbeddingModel;
 
 // Compute cosine similarity between two vectors
 const cosineSimilarity = (a, b) => {
@@ -13,7 +16,7 @@ export const processContexts = async (queryText, contexts) => {
     const queryResult = await transformersClient.run({
         id: crypto.randomUUID(),
         tool: 'ContextWeaver',
-        model: 'bge-small-en-v1.5',
+        model: activeTextEmbeddingModel(),
         task: 'feature-extraction',
         payload: { text: queryText }
     });
@@ -27,7 +30,7 @@ export const processContexts = async (queryText, contexts) => {
         const batchResult = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'ContextWeaver',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { texts: context.items }
         });
@@ -76,7 +79,7 @@ export const extractSemanticKeywords = async (fullText, count = 30) => {
     const textVectorResult = await transformersClient.run({
         id: crypto.randomUUID(),
         tool: 'ContextWeaver',
-        model: 'bge-small-en-v1.5',
+        model: activeTextEmbeddingModel(),
         task: 'feature-extraction',
         payload: { text: contextStr }
     });
@@ -86,7 +89,7 @@ export const extractSemanticKeywords = async (fullText, count = 30) => {
     const candidateVectorsResult = await transformersClient.run({
         id: crypto.randomUUID(),
         tool: 'ContextWeaver',
-        model: 'bge-small-en-v1.5',
+        model: activeTextEmbeddingModel(),
         task: 'feature-extraction',
         payload: { texts: candidates }
     });

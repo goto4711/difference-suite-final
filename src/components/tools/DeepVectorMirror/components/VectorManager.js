@@ -1,4 +1,5 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 
 class VectorManager {
     constructor() {
@@ -36,7 +37,7 @@ class VectorManager {
             const result = await transformersClient.run({
                 id: crypto.randomUUID(),
                 tool: 'DeepVectorMirror',
-                model: 'bge-small-en-v1.5',
+                model: useSuiteStore.getState().textEmbeddingModel,
                 task: 'feature-extraction',
                 payload: { text: input }
             });

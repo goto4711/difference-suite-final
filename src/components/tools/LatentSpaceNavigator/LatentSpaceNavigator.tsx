@@ -21,6 +21,7 @@ const HIDDEN_CONCEPTS = [
 
 const LatentSpaceNavigator = () => {
     const { dataset } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const [mode, setMode] = useState<NavMode>('image');
 
     // Image State
@@ -257,6 +258,11 @@ const LatentSpaceNavigator = () => {
             imageHasOutput || textHasOutput
                 ? { mode, position: Number(sliderValue.toFixed(2)) }
                 : undefined,
+        models: imageHasOutput
+            ? ['resnet-50']
+            : textHasOutput
+              ? [textEmbeddingModel]
+              : undefined,
     });
 
     const mainContent = (

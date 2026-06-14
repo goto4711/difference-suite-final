@@ -192,6 +192,12 @@ const NetworkedNarratives = () => {
                       visualSynapse: enableVisualSynapse ? 'on' : 'off',
                   }
                 : undefined,
+        // Compromise.js (entity extraction) is not a registry model — omit
+        // when no embedded model ran. CLIP only when Visual Synapse fired.
+        models:
+            graphData.nodes.length > 0 && enableVisualSynapse
+                ? ['clip-vit-base-patch32-q4']
+                : undefined,
     });
 
     const mainContent = (

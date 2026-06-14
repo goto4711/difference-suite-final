@@ -14,8 +14,10 @@ type NeighborResult = { word: string; score: number };
 
 const SpectralHeatmap = ({ tensor }: { tensor: tf.Tensor2D }) => {
     const data = tensor.dataSync();
-    // 512 dimensions = 16x32 grid
-    const cols = 32;
+    // Derive a roughly-2:1 grid from the actual embedding width so the
+    // visualization works across models (384, 512, 768, …).
+    const cols = Math.max(1, Math.round(Math.sqrt(data.length * 2)));
+    const aspectRatio = `${cols} / ${Math.max(1, Math.ceil(data.length / cols))}`;
 
     return (
         <div
@@ -24,7 +26,7 @@ const SpectralHeatmap = ({ tensor }: { tensor: tf.Tensor2D }) => {
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
                 width: '100%',
                 maxWidth: '256px',
-                aspectRatio: '2/1'
+                aspectRatio,
             }}
         >
             {Array.from(data).map((val, i) => {
@@ -48,6 +50,7 @@ const SpectralHeatmap = ({ tensor }: { tensor: tf.Tensor2D }) => {
 
 const NoisePredictor = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const [mode, setMode] = useState<NavMode>('image');
 
     const imageItems = dataset.filter(i => i.type === 'image');
@@ -111,7 +114,10 @@ const NoisePredictor = () => {
                 const emb = await latentTextManager.getEmbedding(content);
                 if (emb) {
                     setInputTensor(emb);
-                    await textModel.createModel(384, latentDim);
+                    // Width depends on the active embedding model (e.g. 384 for
+                    // bge-small / multilingual-e5-small, 768 for bert-base).
+                    const embWidth = emb.shape[1];
+                    await textModel.createModel(embWidth, latentDim);
                 }
             }
         } catch (error) {
@@ -172,6 +178,7 @@ const NoisePredictor = () => {
         settings: hasOutput
             ? { mode, latentDim, epochs: epoch, loss: Number(loss.toFixed(4)) }
             : undefined,
+        models: hasOutput ? [mode === 'image' ? 'resnet-50' : textEmbeddingModel] : undefined,
     });
 
     const mainContent = (

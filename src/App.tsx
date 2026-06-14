@@ -8,7 +8,7 @@ import { TOOLS, MAIN_MENU_EXTRAS } from './utils/navigation';
 import Sidebar from './components/shared/Sidebar';
 import { ModelStatusWidget } from './components/shared/ModelStatusWidget';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
-import { EMBEDDING_MODEL_VERSION } from './core/inference/modelRegistry';
+import { getModelConfig } from './core/inference/modelRegistry';
 import ContestHeaderButton from './components/contestation/ContestHeaderButton';
 
 const HeaderComponent = () => (
@@ -17,7 +17,18 @@ const HeaderComponent = () => (
 
 function App() {
   const setEmbeddingModelVersion = useSuiteStore(s => s.setEmbeddingModelVersion);
-  useEffect(() => { setEmbeddingModelVersion(EMBEDDING_MODEL_VERSION); }, [setEmbeddingModelVersion]);
+  const textEmbeddingModel = useSuiteStore(s => s.textEmbeddingModel);
+  // Keep the cache key in sync with the active model + its quantization so
+  // changing the registry quantization (or switching models out of band) also
+  // invalidates stored item embeddings.
+  useEffect(() => {
+    try {
+      const cfg = getModelConfig(textEmbeddingModel);
+      setEmbeddingModelVersion(`${cfg.hfPath}@${cfg.quantization}`);
+    } catch {
+      setEmbeddingModelVersion(textEmbeddingModel);
+    }
+  }, [textEmbeddingModel, setEmbeddingModelVersion]);
 
   return (
     <Router>

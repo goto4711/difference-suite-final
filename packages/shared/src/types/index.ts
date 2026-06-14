@@ -63,6 +63,12 @@ export interface SuiteState {
     setEmbeddingModelVersion: (version: string) => void;
     clearDataset: () => void;
 
+    // Model selection (user-switchable defaults; both persisted)
+    textEmbeddingModel: string;
+    asrModel: string;
+    setTextEmbeddingModel: (modelId: string) => void;
+    setAsrModel: (modelId: string) => void;
+
     // Auth
     isAuthenticated: boolean;
     userEmail: string | null;

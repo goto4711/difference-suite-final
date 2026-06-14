@@ -73,6 +73,10 @@ const DepthMirror = () => {
             selectedItem && selectedItem.type === 'image' && hasDepthMap
                 ? `Depth map estimated for ${selectedItem.name}`
                 : null,
+        models:
+            selectedItem && selectedItem.type === 'image' && hasDepthMap
+                ? ['depth-anything-small']
+                : undefined,
     });
 
     const mainContent = (

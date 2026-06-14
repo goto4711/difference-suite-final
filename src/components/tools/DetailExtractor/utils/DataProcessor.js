@@ -1,4 +1,5 @@
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 
 export const loadModels = async () => {
     // Model loading is handled by TransformersClient on demand
@@ -10,7 +11,7 @@ export const processTextData = async (texts) => {
     const result = await transformersClient.run({
         id: crypto.randomUUID(),
         tool: 'DetailExtractor',
-        model: 'bge-small-en-v1.5',
+        model: useSuiteStore.getState().textEmbeddingModel,
         task: 'feature-extraction',
         payload: { texts }
     });
@@ -39,10 +40,8 @@ export const processTextData = async (texts) => {
         };
     });
 
-    // Project to 2D (Simple PCA-like projection or just use first 2 dims of embedding? 
-    // Embeddings are 512 dim. First 2 dims might be noise.
-    // Let's do a simple projection: map to distance from center + angle?)
-    // Better: PCA.
+    // Project to 2D via power-iteration PCA below. Embedding width is read off
+    // the actual data row, so any model output width works.
     const points = projectTo2D(embeddings);
     processedData.forEach((d, i) => {
         d.x = points[i][0];

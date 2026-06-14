@@ -11,6 +11,7 @@ const hasTextContent = (item: DataItem): item is DataItem & { content: string } 
 
 const GlitchDetectorText = () => {
     const { collections, dataset } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const [isModelReady, setIsModelReady] = useState(false);
     const [exampleCount, setExampleCount] = useState(0);
     const [inputText, setInputText] = useState('');
@@ -88,6 +89,7 @@ const GlitchDetectorText = () => {
             ? `Text: "${testSentence.length > 120 ? testSentence.slice(0, 120) + '…' : testSentence}" scored ${(confidence * 100).toFixed(0)}% normality at threshold ${threshold.toFixed(2)} → ${isAnomaly ? 'GLITCH DETECTED' : 'Normal'}`
             : null,
         settings: hasVerdict ? { mode: 'text', threshold: Number(threshold.toFixed(2)) } : undefined,
+        models: hasVerdict ? [textEmbeddingModel] : undefined,
     });
 
     const mainContent = (

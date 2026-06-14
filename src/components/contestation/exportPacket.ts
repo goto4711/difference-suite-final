@@ -1,10 +1,11 @@
 import {
     buildPacket,
-    CONTESTATION_CATEGORY_LABEL,
-    type ContestationCategory,
-    type ContestationPacketV1,
+    DEFAULT_CATEGORIES,
+    type CategoryDefinition,
+    type ContestationPacketV2,
     type ContestationRecord,
 } from '../../stores/contestationStore';
+import { lookupCategory } from './categoryStyle';
 
 /** Filename-safe ISO date (YYYY-MM-DD) for export filenames. */
 export const isoDate = (ts: number = Date.now()): string => {
@@ -52,21 +53,31 @@ const renderSettings = (settings?: Record<string, string | number>): string => {
     return `<ul class="settings">${items}</ul>`;
 };
 
-const CATEGORY_COLORS: Record<ContestationCategory, string> = {
-    erasure: '#7c3aed',
-    stereotype: '#dc2626',
-    mislabel: '#d97706',
-    disagreement: '#0369a1',
-    other: '#525252',
+const renderProvenance = (record: ContestationRecord): string => {
+    const p = record.provenance;
+    if (!p) return '';
+    const parts: string[] = [];
+    parts.push(`<li><span class="k">commit</span>: <span class="v">${escapeHtml(p.appCommit)}</span></li>`);
+    if (p.appVersion) {
+        parts.push(`<li><span class="k">version</span>: <span class="v">${escapeHtml(p.appVersion)}</span></li>`);
+    }
+    if (p.models && p.models.length > 0) {
+        parts.push(
+            `<li><span class="k">models</span>: <span class="v">${escapeHtml(p.models.join(', '))}</span></li>`,
+        );
+    }
+    return `<section class="provenance-block"><h4>Provenance</h4><ul class="settings">${parts.join('')}</ul></section>`;
 };
 
-export const renderRecordCard = (record: ContestationRecord): string => {
-    const color = CATEGORY_COLORS[record.category];
-    const label = CONTESTATION_CATEGORY_LABEL[record.category];
+export const renderRecordCard = (
+    record: ContestationRecord,
+    categories: CategoryDefinition[] = DEFAULT_CATEGORIES,
+): string => {
+    const def = lookupCategory(record.category, categories);
     return `
     <article class="record">
       <header>
-        <span class="chip" style="background:${color}">${escapeHtml(label)}</span>
+        <span class="chip" style="background:${escapeHtml(def.color)}">${escapeHtml(def.label)}</span>
         <span class="ts">${escapeHtml(formatDate(record.ts))}</span>
         ${record.author ? `<span class="author">— ${escapeHtml(record.author)}</span>` : ''}
       </header>
@@ -79,6 +90,7 @@ export const renderRecordCard = (record: ContestationRecord): string => {
         <pre>${escapeHtml(record.note)}</pre>
       </section>
       ${record.settings ? `<section class="settings-block"><h4>Settings</h4>${renderSettings(record.settings)}</section>` : ''}
+      ${renderProvenance(record)}
       <footer><span class="route">${escapeHtml(record.route)}</span></footer>
     </article>`;
 };
@@ -86,8 +98,15 @@ export const renderRecordCard = (record: ContestationRecord): string => {
 /**
  * Build a single self-contained HTML document (inline CSS, no external assets).
  * Notes are rendered as escaped text — never as HTML — and are never truncated.
+ *
+ * `categories` is used to resolve chip labels/colours; pass the category
+ * definitions from the source of the records (the local store, or the
+ * categories embedded in an imported v2 packet).
  */
-export const buildHtmlPacket = (records: ContestationRecord[]): string => {
+export const buildHtmlPacket = (
+    records: ContestationRecord[],
+    categories: CategoryDefinition[] = DEFAULT_CATEGORIES,
+): string => {
     const groups = groupByTool(records);
     const generatedAt = new Date().toLocaleString();
     const totalLine =
@@ -101,7 +120,7 @@ export const buildHtmlPacket = (records: ContestationRecord[]): string => {
             return `
     <section class="tool">
       <h2>${escapeHtml(toolId)} <span class="count">(${sorted.length})</span></h2>
-      ${sorted.map(renderRecordCard).join('\n')}
+      ${sorted.map((r) => renderRecordCard(r, categories)).join('\n')}
     </section>`;
         })
         .join('\n');
@@ -145,5 +164,12 @@ export const buildHtmlPacket = (records: ContestationRecord[]): string => {
 </html>`;
 };
 
-export const buildJsonPacket = (records: ContestationRecord[]): ContestationPacketV1 =>
-    buildPacket(records);
+/**
+ * Build a JSON packet under the current schema (@2). Embeds the supplied
+ * category definitions so importers can render any custom category the
+ * exporter used.
+ */
+export const buildJsonPacket = (
+    records: ContestationRecord[],
+    categories: CategoryDefinition[] = DEFAULT_CATEGORIES,
+): ContestationPacketV2 => buildPacket(records, categories);

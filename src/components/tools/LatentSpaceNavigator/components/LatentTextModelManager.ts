@@ -1,7 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import { dictionary } from '../data/dictionary';
 import { transformersClient } from '../../../../core/inference/TransformersClient';
+import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { debug } from '../../../../utils/log';
+
+const activeTextEmbeddingModel = () => useSuiteStore.getState().textEmbeddingModel;
 
 type EmbeddingVector = number[];
 type EmbeddingMatrix = number[][];
@@ -29,7 +32,7 @@ class LatentTextModelManager {
         const result = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'LatentSpaceNavigator',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { texts: this.dictionaryWords }
         }, (p) => {
@@ -98,14 +101,14 @@ class LatentTextModelManager {
         const resA = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'LatentSpaceNavigator',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { text: textA }
         });
         const resB = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'LatentSpaceNavigator',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { text: textB }
         });
@@ -141,7 +144,7 @@ class LatentTextModelManager {
         const result = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'LatentSpaceNavigator',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { texts: newWords }
         });
@@ -165,7 +168,7 @@ class LatentTextModelManager {
         const result = await transformersClient.run({
             id: crypto.randomUUID(),
             tool: 'LatentSpaceNavigator',
-            model: 'bge-small-en-v1.5',
+            model: activeTextEmbeddingModel(),
             task: 'feature-extraction',
             payload: { text }
         });

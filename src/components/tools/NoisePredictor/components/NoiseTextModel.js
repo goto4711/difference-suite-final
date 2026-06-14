@@ -7,7 +7,12 @@ export class NoiseTextModel {
         this.latentDim = 32;
     }
 
-    async createModel(inputDim = 512, latentDim = 32) {
+    // Caller must pass inputDim derived from the actual embedding width
+    // (different embedding models produce different widths — 384, 512, 768, …).
+    async createModel(inputDim, latentDim = 32) {
+        if (!inputDim || inputDim <= 0) {
+            throw new Error('NoiseTextModel.createModel: inputDim is required.');
+        }
         this.latentDim = latentDim;
 
         const input = tf.input({ shape: [inputDim] });

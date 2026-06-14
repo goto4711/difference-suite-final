@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
-import { Sparkles, BookOpen, GitBranch, Lightbulb, Send, BrainCircuit, FileText, ChevronDown } from 'lucide-react';
+import { Sparkles, BookOpen, GitBranch, Lightbulb, Send, BrainCircuit, FileText, ChevronDown, Mic } from 'lucide-react';
 import type { DataItem } from '@difference-suite/shared/types';
 import { debug } from '../../../utils/log';
 import { MachineWorkDrawer } from '../../machineRoom/MachineWorkDrawer';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
+import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
 
 const MODES = [
     { id: 'define', label: 'Define', icon: BookOpen, prompt: "Define and explain this concept clearly: " },
@@ -33,6 +34,7 @@ const SemanticOracle = () => {
     const [progress, setProgress] = useState(0);
     const [showCorpus, setShowCorpus] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isDictating, setIsDictating] = useState(false);
 
     // Filter for text corpus items
     const textCorpus = useMemo(() => {
@@ -88,12 +90,19 @@ const SemanticOracle = () => {
         setShowCorpus(false);
     };
 
+    const handleDictation = (transcript: string) => {
+        const trimmed = transcript.trim();
+        if (!trimmed) return;
+        setInput((prev) => (prev.trim() ? `${prev.trim()} ${trimmed}` : trimmed));
+    };
+
     useReportCurrentOutput({
         toolId: 'SemanticOracle',
         outputSummary: output
             ? `Prompt (${mode}): ${input}\nAnswer: ${output.length > 500 ? output.slice(0, 500) + '…' : output}`
             : null,
         settings: output ? { mode } : undefined,
+        models: output ? ['smollm2-135m-instruct'] : undefined,
     });
 
     if (!store) {
@@ -229,6 +238,14 @@ const SemanticOracle = () => {
                                     disabled={isGenerating}
                                 />
                                 <button
+                                    onClick={() => setIsDictating(true)}
+                                    disabled={isGenerating}
+                                    title="Dictate (records, transcribes, appends to input)"
+                                    className="h-12 w-12 flex items-center justify-center bg-white text-main border border-main/30 rounded hover:bg-main/5 disabled:opacity-50 transition-colors mx-1"
+                                >
+                                    <Mic size={20} />
+                                </button>
+                                <button
                                     onClick={handleGenerate}
                                     disabled={isGenerating || !input.trim()}
                                     className="h-12 w-12 flex items-center justify-center bg-main text-white rounded hover:bg-main-hover disabled:opacity-50 disabled:hover:bg-main transition-colors mx-2"
@@ -246,6 +263,15 @@ const SemanticOracle = () => {
                 </div>
 
             </div>
+
+            {isDictating && (
+                <AudioRecorderModal
+                    isOpen={isDictating}
+                    onClose={() => setIsDictating(false)}
+                    onCapture={() => setIsDictating(false)}
+                    onTranscribeCapture={handleDictation}
+                />
+            )}
         </div>
     );
 };

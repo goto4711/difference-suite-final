@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Info } from 'lucide-react';
+import { Search, Info, Mic } from 'lucide-react';
 import RadialViz from './components/RadialViz';
 import ComparisonTable from './components/ComparisonTable';
 import VectorInspector from './components/VectorInspector';
@@ -7,6 +7,7 @@ import { processContexts, extractSemanticKeywords } from './utils/ContextProcess
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import ToolLayout from '../../shared/ToolLayout';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
+import { AudioRecorderModal } from '../../dashboard/modals/AudioRecorderModal';
 
 type ContextDefinition = {
     name: string;
@@ -54,6 +55,7 @@ const DEMO_CONTEXTS = [
 
 const ContextWeaver = () => {
     const { dataset, activeItem, setActiveItem, collections } = useSuiteStore();
+    const textEmbeddingModel = useSuiteStore((s) => s.textEmbeddingModel);
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [queryText, setQueryText] = useState("");
@@ -63,6 +65,14 @@ const ContextWeaver = () => {
     const [status, setStatus] = useState("");
     const [selectedMatch, setSelectedMatch] = useState<SelectedMatch | null>(null);
     const [inputMode, setInputMode] = useState<'query' | 'selection'>('query');
+    const [isDictating, setIsDictating] = useState(false);
+
+    const handleDictation = (transcript: string) => {
+        const trimmed = transcript.trim();
+        if (!trimmed) return;
+        setInputMode('query');
+        setQueryText((prev) => (prev.trim() ? `${prev.trim()} ${trimmed}` : trimmed));
+    };
 
     // Use selected text item as query if available and mode is selection
     const effectiveQuery = inputMode === 'selection' && selectedItem?.type === 'text'
@@ -155,6 +165,7 @@ const ContextWeaver = () => {
                       }),
                   ].join('\n')
                 : null,
+        models: results.length > 0 ? [textEmbeddingModel] : undefined,
     });
 
     const mainContent = (
@@ -290,6 +301,15 @@ const ContextWeaver = () => {
                             placeholder="Enter text to analyze..."
                             className="deep-input w-full resize-none h-32 text-sm"
                         />
+                        <button
+                            type="button"
+                            onClick={() => setIsDictating(true)}
+                            className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-main/70 hover:text-main uppercase tracking-wider"
+                            title="Dictate (records, transcribes, appends to query)"
+                        >
+                            <Mic className="w-3.5 h-3.5" />
+                            Dictate
+                        </button>
                     </div>
                 )}
 
@@ -339,12 +359,22 @@ const ContextWeaver = () => {
     );
 
     return (
-        <ToolLayout
-            title="Context Weaver"
-            subtitle="Analyze how meaning shifts across different semantic contexts"
-            mainContent={mainContent}
-            sideContent={sideContent}
-        />
+        <>
+            <ToolLayout
+                title="Context Weaver"
+                subtitle="Analyze how meaning shifts across different semantic contexts"
+                mainContent={mainContent}
+                sideContent={sideContent}
+            />
+            {isDictating && (
+                <AudioRecorderModal
+                    isOpen={isDictating}
+                    onClose={() => setIsDictating(false)}
+                    onCapture={() => setIsDictating(false)}
+                    onTranscribeCapture={handleDictation}
+                />
+            )}
+        </>
     );
 };
 

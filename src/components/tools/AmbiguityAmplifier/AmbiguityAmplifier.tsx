@@ -106,6 +106,7 @@ const AmbiguityAmplifierImage = ({ mode, setMode }: { mode: AnalysisMode; setMod
             ? `Image: ${selectedItem.name} — top: ${predictions[0].className.split(',')[0]} (${(predictions[0].probability * 100).toFixed(1)}%) at noise ${(noiseLevel * 100).toFixed(0)}%`
             : null,
         settings: hasPredictions ? { mode: 'image', noise: Number(noiseLevel.toFixed(2)) } : undefined,
+        models: hasPredictions ? ['resnet-50'] : undefined,
     });
 
     const mainContent = (
