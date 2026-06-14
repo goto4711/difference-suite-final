@@ -1,6 +1,6 @@
 # Glitch Detector
 
-**Route:** `/glitch-detector` · **Models:** ResNet-50 (image features) / BGE-Small-EN-v1.5 (text), both with a KNN classifier · **Key dependencies:** `@tensorflow-models/knn-classifier`, `@huggingface/transformers`, `@tensorflow/tfjs` · **Archival site:** Real-time archives · **Try it with:** `difference-suite-testdata/texts/food_tweets/` vs `texts/election-tweets-texts/`, or `images/animals/`
+**Route:** `/glitch-detector` · **Models:** ResNet-50 (image features) / active text-embedding model (default `multilingual-e5-small`) (text), both with a KNN classifier · **Key dependencies:** `@tensorflow-models/knn-classifier`, `@huggingface/transformers`, `@tensorflow/tfjs` · **Archival site:** Real-time archives · **Try it with:** `difference-suite-testdata/texts/food_tweets/` vs `texts/election-tweets-texts/`, or `images/animals/`
 
 ---
 
@@ -16,7 +16,7 @@ The project draws on the strand of critical AI research that treats moments wher
 
 ## How It Works
 
-Users train a **K-nearest-neighbours classifier** on their own collections, labelling examples by category. In **image mode**, features are extracted with **ResNet-50**; in **text mode**, with **BGE-Small-EN-v1.5**. The classifier learns the boundaries implied by the labelled set. The user then switches to test mode and feeds in new inputs: the Glitch Detector reports the predicted class and its confidence, and flags **glitches** — items the trained model classifies with low confidence or that fall awkwardly between learned categories. Everything runs locally; the classifier is built and queried in the browser.
+Users train a **K-nearest-neighbours classifier** on their own collections, labelling examples by category. In **image mode**, features are extracted with **ResNet-50**; in **text mode**, with the **active text-embedding model** (default `multilingual-e5-small`). The classifier learns the boundaries implied by the labelled set. The user then switches to test mode and feeds in new inputs: the Glitch Detector reports the predicted class and its confidence, and flags **glitches** — items the trained model classifies with low confidence or that fall awkwardly between learned categories. Everything runs locally; the classifier is built and queried in the browser.
 
 ## Methods Setup
 

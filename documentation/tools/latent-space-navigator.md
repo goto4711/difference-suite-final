@@ -1,6 +1,6 @@
 # Latent Space Navigator
 
-**Route:** `/latent-navigator` · **Models:** ResNet-50 (image interpolation) / BGE-Small-EN-v1.5 (text concept interpolation) · **Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` · **Archival site:** Incidental archives (cross-cutting) · **Try it with:** `difference-suite-testdata/images/animals/` or any two text concepts
+**Route:** `/latent-navigator` · **Models:** ResNet-50 (image interpolation) / active text-embedding model (default `multilingual-e5-small`) (text concept interpolation) · **Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` · **Archival site:** Incidental archives (cross-cutting) · **Try it with:** `difference-suite-testdata/images/animals/` or any two text concepts
 
 ---
 
@@ -16,7 +16,7 @@ The project's interest in difference is, at bottom, an interest in what falls be
 
 ## How It Works
 
-The user selects two anchors — two images (A and B) or two text concepts — and the tool embeds each: **ResNet-50** features for images, **BGE-Small-EN-v1.5** vectors for text. A slider then **interpolates** between the two embeddings at any ratio. In image mode, the tool predicts what classification labels apply at the interpolated point, exposing the often low-confidence or incongruous categories that surface in the middle. In text mode, it performs concept interpolation — vector arithmetic between words (the default pairing is *King* and *Woman*) — and reports the nearest terms along the path. When the model is most confused, the Navigator surfaces a deliberately evocative label from its **"hidden concepts"** set — *The Void*, *The In-Between*, *Hybrid Entity*, *Cultural Glitch*, *Ghost in the Machine* — naming the uncertainty instead of hiding it.
+The user selects two anchors — two images (A and B) or two text concepts — and the tool embeds each: **ResNet-50** features for images, the **active text-embedding model** (default `multilingual-e5-small`) for text. A slider then **interpolates** between the two embeddings at any ratio. In image mode, the tool predicts what classification labels apply at the interpolated point, exposing the often low-confidence or incongruous categories that surface in the middle. In text mode, it performs concept interpolation — vector arithmetic between words (the default pairing is *King* and *Woman*) — and reports the nearest terms along the path. When the model is most confused, the Navigator surfaces a deliberately evocative label from its **"hidden concepts"** set — *The Void*, *The In-Between*, *Hybrid Entity*, *Cultural Glitch*, *Ghost in the Machine* — naming the uncertainty instead of hiding it.
 
 ## Methods Setup
 

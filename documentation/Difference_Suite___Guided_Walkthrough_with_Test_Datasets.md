@@ -23,7 +23,8 @@ difference-suite-testdata/
 ├── texts/
 │   ├── holocaust-texts/      numbered .txt files (0001.txt – 0327.txt)
 │   ├── election-tweets-texts/ 50 tweet files (tweet_001.txt – tweet_050.txt)
-│   └── food_tweets/          tweet-style text files
+│   ├── food_tweets/          tweet-style text files
+│   └── multilingual/         german.txt, dutch.txt, french.txt (shared themes) + audio/max_havelaar_nl.wav (Dutch ASR clip, PD)
 ├── test/
 │   └── visual_synapse_test/  golden_key.png + mystery_story.txt
 └── other/                    system_crash.json, threshold_data.json, viral_event.csv
@@ -39,6 +40,7 @@ difference-suite-testdata/
 | `texts/holocaust-texts/` | Detail Extractor, Networked Narratives, Context Weaver, Glitch Detector (text), Noise Predictor (text) |
 | `texts/election-tweets-texts/` | Ambiguity Amplifier (text), Glitch Detector (text), Latent Navigator (text), Threshold Adjuster |
 | `texts/food_tweets/` | Glitch Detector contrast corpus, Ambiguity Amplifier |
+| `texts/multilingual/` | multilingual embedding demo (cross-language clustering in Context Weaver / Detail Extractor); `audio/max_havelaar_nl.wav` for the Dutch speech-to-text demo |
 | `test/visual_synapse_test/` | Networked Narratives (Visual Synapse) |
 | `other/`, `test/` (root) | miscellaneous tabular and time-series data; ad-hoc images |
 
@@ -69,7 +71,7 @@ Open **Data Dashboard** in the main menu (it is also where `/` redirects you on 
 
 ## Step 2: The Machine Room — meet the machinery first
 
-Before any analysis, open **Machine Room** in the main menu. It will be nearly empty — that is the point. Keep it in mind; you will return after each tool to read what the machine *did*: which model it fetched, at what precision ("q4 — a quarter of the original precision; someone made this trade-off for you"), on which processor, what it evicted to make room, and what failed. The **Fragility** section counts crashes, fallbacks and timeouts for your session. Nothing here is hidden or embarrassing; this is the suite narrating its own decisions.
+Before any analysis, open **Machine Room** in the main menu. It will be nearly empty — that is the point. Keep it in mind; you will return after each tool to read what the machine *did*: which model it fetched, at what precision ("q4 — a quarter of the original precision; someone made this trade-off for you"), on which processor, what it evicted to make room, and what failed. The **Fragility** section counts crashes, fallbacks and timeouts for your session. The **Defaults** panel here is also where you choose the active **text-embedding model** (default `multilingual-e5-small`) and **speech-to-text model** (default `whisper-base`, with `whisper-small` as a higher-accuracy option) — and where you can remove a downloaded model from the computer. Nothing here is hidden or embarrassing; this is the suite narrating, and handing you the controls to, its own decisions.
 
 ## Step 3: Visual Storyteller — perception vs. imagination
 
@@ -107,8 +109,10 @@ Before any analysis, open **Machine Room** in the main menu. It will be nearly e
 ## Step 7: Context Weaver — meaning is positional
 
 1. Select a Holocaust testimony; weave it against several contexts.
+2. **Multilingual try:** load `texts/multilingual/` (german.txt, dutch.txt, french.txt — they share three themes) into a collection and weave, or run **Detail Extractor** on it. With the default `multilingual-e5-small` embedding model, items cluster by *theme across languages*, not by language. (Switch the embedding model in the Machine Room to compare.)
+3. **Dictate instead of type:** in custom-text mode, press **Dictate** to record a query by voice — the transcript (multilingual Whisper, with a language dropdown) is appended to the box.
 
-**What to observe.** The same sentence sits at different distances from different contexts; the radial view shows meaning as relation rather than essence (Vector→Context).
+**What to observe.** The same sentence sits at different distances from different contexts; the radial view shows meaning as relation rather than essence (Vector→Context). And meaning crosses languages: a German and a French sentence about the same theme land near each other because the embedding space is multilingual.
 
 ## Step 8: Deep Vector Mirror — the vector itself
 
@@ -142,6 +146,7 @@ Before any analysis, open **Machine Room** in the main menu. It will be nearly e
 ## Step 12: Semantic Oracle — a small intelligence you can corner
 
 1. Type a concept (`difference`, `archive`, `memory`) and try the three modes: Define / Expand / Tangent.
+2. **Speak it instead:** press the **mic** button to dictate the concept. Pick a language in the recorder, or record the Dutch clip `texts/multilingual/audio/max_havelaar_nl.wav` (play it into the mic) with **Dutch** selected — the transcript is appended to the prompt. (Whisper is small: it will hear "makelaar" as "MacLaan"; that imperfection is itself worth discussing.)
 
 **What to observe.** SmolLM2 has 135 million parameters — a thousandth of the commercial systems — and it shows: confident, fluent, frequently wrong. That is its pedagogical value. It is small enough to corner, interrogate and contest. (The suite's first ever recorded contestation was filed against this tool's definition of "archive".)
 
@@ -170,7 +175,7 @@ Classify a small set of tweets, then drag the decision threshold and watch items
 
 ## Step 16: Contest as you go
 
-By now you should have three or four contestations. Open **Contestations** in the main menu: every record carries your note, its category, the contested output, and the settings that produced it — all stored only in your browser. **Export** produces a JSON packet (for the next step) and a printable HTML evidence packet (for a seminar discussion or coursework appendix).
+By now you should have three or four contestations. Open **Contestations** in the main menu: every record carries your note, its category, the contested output, the settings that produced it, and **provenance** (the app version and the model the tool used) — all stored only in your browser. The **categories are yours to edit**: open *Manage categories* to add, rename, recolour or remove them — the five defaults (erasure, stereotype, mislabel, disagreement, other) are a starting vocabulary, not a fixed one (a category still in use can't be deleted, so a record's chosen category is never silently rewritten). **Export** produces a JSON packet (schema `@2`, carrying your categories and provenance, for the next step) and a printable HTML evidence packet (for a seminar discussion or coursework appendix).
 
 ## Step 17: Collaboration — disagreement made visible
 
@@ -179,7 +184,7 @@ In a group setting (or solo, by exporting twice under different initials):
 1. Everyone exports their contestation packet (JSON) with their initials.
 2. One person opens **Collaboration** and drags all packets in.
 3. Read the **threshold spread**: every participant's Glitch Detector sensitivity on a single axis — the group's disagreement about where "glitch" begins, in one picture. There is no correct dot.
-4. Read the **tool × participant matrix**: where did this group's friction concentrate?
+4. Read the **tool × participant matrix**: where did this group's friction concentrate? If participants edited their categories, the matrix shows the **union** of everyone's vocabularies, with custom categories marked — disagreement about *how to name* a harm is itself on display. Use **Clear all imports** to reset between groups.
 5. Export the combined packet as the session's collective record.
 
 Imports live in memory only — a collaboration is an encounter, not a database.
@@ -205,6 +210,7 @@ Everything — interface, inference engine, every model you used — is now on y
 
 ## Classroom Preparation Notes
 
+- **Hand out a ready-made session**: on the Dashboard, **Save project** exports the whole session — corpus (optionally with media), collections, and contestations + categories — as one file; students **Open project** to restore it exactly. Ideal for starting a workshop from a prepared corpus instead of re-uploading. (A separate **Export dataset** produces a Datasheets-for-Datasets document + manifest for sharing a collection as a documented dataset; raw files are opt-in/off by default.)
 - **Preload while online**: have students click through every tool you plan to use at the start of the session — each first use downloads its model (100–400 MB for the heavier ones). After that, the session survives any Wi-Fi.
 - **First load of Florence-2 / Visual Storyteller** is the longest single download; start it first.
 - The model badge shows what is in memory; the suite holds at most three models and evicts the least recently used — the Machine Room narrates every eviction.

@@ -1,6 +1,6 @@
 # Noise Predictor
 
-**Route:** `/noise-predictor` · **Models:** Custom TensorFlow.js autoencoder + BGE-Small-EN-v1.5 (text embeddings) / ResNet-50 features (image) · **Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` · **Archival site:** Real-time archives (cross-cutting) · **Try it with:** `difference-suite-testdata/images/animals/` and `texts/holocaust-texts/`
+**Route:** `/noise-predictor` · **Models:** Custom TensorFlow.js autoencoder + active text-embedding model (default `multilingual-e5-small`) for text / ResNet-50 features (image) · **Key dependencies:** `@tensorflow/tfjs`, `@huggingface/transformers` · **Archival site:** Real-time archives (cross-cutting) · **Try it with:** `difference-suite-testdata/images/animals/` and `texts/holocaust-texts/`
 
 ---
 
@@ -16,7 +16,7 @@ A recurring concern of the project is that computational systems present their o
 
 ## How It Works
 
-The tool trains a small **autoencoder** in TensorFlow.js: a network that squeezes its input through a narrow bottleneck and then tries to rebuild it. For text, inputs are first embedded with **BGE-Small-EN-v1.5**; for images, raw pixels or ResNet-50 features are used. Because the bottleneck cannot carry everything, the reconstruction is imperfect. The tool computes the **residual** — original minus reconstructed — and renders it as a **spectral heatmap**, a grid of cells where intensity marks which dimensions of the representation carried information and which were lost or distorted. The visualisation makes concrete what the model "forgets" when it represents an artefact.
+The tool trains a small **autoencoder** in TensorFlow.js: a network that squeezes its input through a narrow bottleneck and then tries to rebuild it. For text, inputs are first embedded with the **active text-embedding model** (default `multilingual-e5-small`); for images, raw pixels or ResNet-50 features are used. Because the bottleneck cannot carry everything, the reconstruction is imperfect. The tool computes the **residual** — original minus reconstructed — and renders it as a **spectral heatmap**, a grid of cells where intensity marks which dimensions of the representation carried information and which were lost or distorted. The visualisation makes concrete what the model "forgets" when it represents an artefact.
 
 ## Methods Setup
 

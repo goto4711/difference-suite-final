@@ -1,6 +1,6 @@
 # Ambiguity Amplifier
 
-**Route:** `/ambiguity-amplifier` · **Models:** ResNet-50 (image classification) + BGE-Small-EN-v1.5 with KNN classifier (text) · **Key dependencies:** `@huggingface/transformers`, `@tensorflow-models/knn-classifier`, `@tensorflow/tfjs` · **Archival site:** Real-time archives · **Try it with:** `difference-suite-testdata/images/animals/` and `texts/election-tweets-texts/`
+**Route:** `/ambiguity-amplifier` · **Models:** ResNet-50 (image classification) + the active text-embedding model (default `multilingual-e5-small`, selectable) with KNN classifier (text) · **Key dependencies:** `@huggingface/transformers`, `@tensorflow-models/knn-classifier`, `@tensorflow/tfjs` · **Archival site:** Real-time archives · **Try it with:** `difference-suite-testdata/images/animals/` and `texts/election-tweets-texts/`
 
 ---
 
@@ -16,7 +16,7 @@ Critical cultural research understands identity as "multiple," "incomplete, in p
 
 ## How It Works
 
-In **image mode**, the tool classifies items with **ResNet-50** (via the suite's Transformers.js client) and, rather than reporting only the top label, visualises the spread of probability across competing categories — drawing attention to images where several classes receive significant mass and no single label dominates. In **text mode**, it embeds inputs with **BGE-Small-EN-v1.5** and uses a **K-nearest-neighbours classifier** to position text between two user-defined concepts, highlighting "borderline" cases where confidence hovers near the midpoint. All computation is local (WebGPU/WASM); nothing is uploaded.
+In **image mode**, the tool classifies items with **ResNet-50** (via the suite's Transformers.js client) and, rather than reporting only the top label, visualises the spread of probability across competing categories — drawing attention to images where several classes receive significant mass and no single label dominates. In **text mode**, it embeds inputs with the **active text-embedding model** (default `multilingual-e5-small`, multilingual; selectable in the Machine Room) and uses a **K-nearest-neighbours classifier** to position text between two user-defined concepts, highlighting "borderline" cases where confidence hovers near the midpoint. All computation is local (WebGPU/WASM); nothing is uploaded.
 
 ## Methods Setup
 

@@ -56,10 +56,19 @@ Three tools realise the project's *public things / beyond deep culture* dimensio
 17. [Threshold Adjuster](threshold-adjuster.md) — Uncertainty → Doubt
 18. [Visual Storyteller](visual-storyteller.md) — Imagination → Narrative
 
+## Suite-wide capabilities
+
+Several capabilities cut across the individual tools and are managed at the suite/dashboard level:
+
+- **Multilingual by default.** Text tools embed with a selectable model, default **`multilingual-e5-small`** (384-dim, ~100 languages; e5 `query:` prefixing handled in the feature-extraction handler). Speech input uses multilingual **`whisper-base`**, with **`whisper-small`** as an opt-in higher-accuracy choice. Both the embedding model and ASR model are switched in the **Machine Room** Defaults panel.
+- **Voice into tools.** Semantic Oracle and Context Weaver can take dictated input via the shared audio recorder (language dropdown), appending the transcript.
+- **Machine Room as control panel.** Beyond the decision journal, it hosts the model selectors and a per-model **clear-cache** control; model weights are cached (and cache hits narrated as `cache-check`).
+- **Offline resilience.** The Imagination Inspector caches Stable Bias data in IndexedDB (works offline after one fetch) and fails honestly (`unmatched`/`offline`) rather than fabricating — the SmolLM2 simulation was removed.
+- **Contestation v2.** Editable contestation categories (seeded with five; add/rename/recolour/remove-with-in-use-block), dynamic chip colours, and `difference-suite-contestations@2` packets carrying **provenance** (`appCommit` + declared models) and embedded category definitions; Collaboration merges `@1`/`@2` and shows a union-aware matrix.
+- **Scholarly + portable outputs (dashboard).** A **dataset export** produces a Datasheets-for-Datasets document + manifest + embeddings + provenance (raw files opt-in off, privacy-preserving), and **project save/load** exports/imports a whole session (corpus + media + collections + contestations + settings) as one file for workshop hand-off.
+
 ## Notes on accuracy
 
-These documents were written against the current source (`src/components/`, `src/stores/`, `src/core/inference/modelRegistry.ts`) in this `transf-js-4` build. Image classification uses **ResNet-50**; the Semantic Oracle uses **SmolLM2-135M-Instruct**; the **Visual Storyteller** is now a two-stage Florence-2 → SmolLM2 pipeline (literal caption then surreal retelling); the Imagination Inspector surfaces **real Stable Bias images via CLIP**. The three public-things tools (Machine Room, Contestations, Collaboration) run **no ML model** — they observe the engine and record/merge user dissent.
+These documents were written against the current source (`src/components/`, `src/stores/`, `src/core/inference/modelRegistry.ts`) in this `transf-js-4` build. Text embedding uses a selectable model defaulting to **`multilingual-e5-small`**; image classification uses **ResNet-50**; the Semantic Oracle uses **SmolLM2-135M-Instruct**; the **Visual Storyteller** is a two-stage Florence-2 → SmolLM2 pipeline (literal caption then surreal retelling); the **Imagination Inspector** surfaces **real Stable Bias images via CLIP**, cached for offline use, with no synthetic fallback. The three public-things tools (Machine Room, Contestations, Collaboration) run **no ML model** — they observe/configure the engine and record/merge user dissent.
 
-For a technical backlog of proposed improvements across these tools, see [`FUTURE_WORK.md`](FUTURE_WORK.md).
-
-See also: `../Difference_Suite___In_Depth_Technical_Overview.md`, `../Difference_Suite___Guided_Walkthrough_with_Test_Datasets.md`, `../What_It_Took_To_Make_Deep_Learning_Small.md`, and `../Large_Models_Suite.md`.
+See also: `../Difference_Suite___Technical_Specification.md` (implementation reference), `../Difference_Suite___In_Depth_Technical_Overview.md`, `../Difference_Suite___Guided_Walkthrough_with_Test_Datasets.md`, `../What_It_Took_To_Make_Deep_Learning_Small.md`, and `../Large_Models_Suite.md`.
