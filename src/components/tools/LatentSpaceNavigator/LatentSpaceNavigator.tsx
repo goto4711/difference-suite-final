@@ -5,6 +5,7 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import * as tf from '@tensorflow/tfjs';
 import { Layers, Sparkles, Image as ImageIcon, Type, ArrowRight, BrainCircuit, Wand2, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
+import CollectionFilter from '../../shared/CollectionFilter';
 import { extractSemanticKeywords } from '../ContextWeaver/utils/ContextProcessor';
 import { debug } from '../../../utils/log';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
@@ -30,6 +31,10 @@ const LatentSpaceNavigator = () => {
     const [imageB, setImageB] = useState<tf.Tensor3D | null>(null);
     const [selectedIdA, setSelectedIdA] = useState<string | null>(null);
     const [selectedIdB, setSelectedIdB] = useState<string | null>(null);
+    const [filterA, setFilterA] = useState<string | null>(null);
+    const [filterB, setFilterB] = useState<string | null>(null);
+    const imagesA = useMemo(() => imageItems.filter(i => !filterA || i.collectionId === filterA), [imageItems, filterA]);
+    const imagesB = useMemo(() => imageItems.filter(i => !filterB || i.collectionId === filterB), [imageItems, filterB]);
     const [imagePrediction, setImagePrediction] = useState<ImagePrediction[]>([]);
     const [hiddenConcept, setHiddenConcept] = useState<string | null>(null);
     const [isLoadingA, setIsLoadingA] = useState(false);
@@ -432,8 +437,9 @@ const LatentSpaceNavigator = () => {
                     <>
                         <div className="flex-1 overflow-y-auto min-h-0 border border-gray-100 rounded-xl bg-gray-50/50 p-2">
                             <h4 className="text-[10px] font-bold text-main mb-2 sticky top-0 bg-gray-50/95 py-2 px-1 z-10 border-b border-gray-200 uppercase tracking-widest">Target A (Source)</h4>
+                            <CollectionFilter type="image" value={filterA} onChange={setFilterA} className="mb-2" />
                             <div className="space-y-1">
-                                {imageItems.map(item => (
+                                {imagesA.map(item => (
                                     <div
                                         key={`A-${item.id}`}
                                         onClick={() => !isLoadingA && loadImageFromItem(item.id, 'A')}
@@ -456,14 +462,15 @@ const LatentSpaceNavigator = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {imageItems.length === 0 && <div className="text-[10px] text-text-muted italic p-4 text-center">No images found in dashboard.</div>}
+                                {imagesA.length === 0 && <div className="text-[10px] text-text-muted italic p-4 text-center">No images in this collection.</div>}
                             </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto min-h-0 border border-gray-100 rounded-xl bg-gray-50/50 p-2">
                             <h4 className="text-[10px] font-bold text-secondary mb-2 sticky top-0 bg-gray-50/95 py-2 px-1 z-10 border-b border-gray-200 uppercase tracking-widest">Target B (End)</h4>
+                            <CollectionFilter type="image" value={filterB} onChange={setFilterB} className="mb-2" />
                             <div className="space-y-1">
-                                {imageItems.map(item => (
+                                {imagesB.map(item => (
                                     <div
                                         key={`B-${item.id}`}
                                         onClick={() => !isLoadingB && loadImageFromItem(item.id, 'B')}

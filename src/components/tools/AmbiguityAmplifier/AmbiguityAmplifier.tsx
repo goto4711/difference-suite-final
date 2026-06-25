@@ -4,6 +4,7 @@ import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import * as tf from '@tensorflow/tfjs';
 import { Zap, Info, AlertTriangle, Activity, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
+import CollectionFilter from '../../shared/CollectionFilter';
 import AmbiguityAmplifierTextContent from './components/AmbiguityAmplifierText';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
@@ -59,6 +60,8 @@ const AmbiguityAmplifier = () => {
 const AmbiguityAmplifierImage = ({ mode, setMode }: { mode: AnalysisMode; setMode: (m: AnalysisMode) => void }) => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
     const imageItems = dataset.filter(i => i.type === 'image');
+    const [pickCollection, setPickCollection] = useState<string | null>(null);
+    const visibleImages = imageItems.filter(i => !pickCollection || i.collectionId === pickCollection);
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -177,13 +180,14 @@ const AmbiguityAmplifierImage = ({ mode, setMode }: { mode: AnalysisMode; setMod
         <div className="flex flex-col gap-6 p-1">
             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <label className="text-xs font-bold text-text-muted block mb-2">Select Target Image:</label>
+                <CollectionFilter type="image" value={pickCollection} onChange={setPickCollection} className="mb-2" />
                 <select
                     className="deep-input w-full text-xs"
                     value={activeItem || ''}
                     onChange={(e) => setActiveItem(e.target.value)}
                 >
                     <option value="" disabled>-- Choose Image --</option>
-                    {imageItems.map(item => (
+                    {visibleImages.map(item => (
                         <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                 </select>

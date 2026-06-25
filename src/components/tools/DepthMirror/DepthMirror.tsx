@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { Image as ImageIcon, Box, AlignVerticalSpaceAround } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
+import CollectionFilter from '../../shared/CollectionFilter';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
@@ -14,6 +15,8 @@ type DepthEstimationOutput = {
 const DepthMirror = () => {
     const { dataset, activeItem, setActiveItem } = useSuiteStore();
     const imageItems = dataset.filter(i => i.type === 'image');
+    const [pickCollection, setPickCollection] = useState<string | null>(null);
+    const visibleImages = imageItems.filter(i => !pickCollection || i.collectionId === pickCollection);
     const selectedItem = dataset.find(i => i.id === activeItem);
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -125,13 +128,14 @@ const DepthMirror = () => {
         <div className="flex flex-col gap-6 p-1">
             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <label className="text-xs font-bold text-text-muted block mb-2 uppercase tracking-wide">Select Input:</label>
+                <CollectionFilter type="image" value={pickCollection} onChange={setPickCollection} className="mb-2" />
                 <select
                     className="deep-input w-full text-xs"
                     value={activeItem || ''}
                     onChange={(e) => setActiveItem(e.target.value)}
                 >
                     <option value="" disabled>-- Choose Image --</option>
-                    {imageItems.map(item => (
+                    {visibleImages.map(item => (
                         <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                 </select>

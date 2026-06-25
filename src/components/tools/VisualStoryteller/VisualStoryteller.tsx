@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { BookOpen, Image, Sparkles, RefreshCw } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
+import CollectionFilter from '../../shared/CollectionFilter';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
@@ -8,6 +9,8 @@ import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 const VisualStoryteller = () => {
     const { dataset } = useSuiteStore();
     const imageItems = useMemo(() => dataset.filter(i => i.type === 'image'), [dataset]);
+    const [pickCollection, setPickCollection] = useState<string | null>(null);
+    const visibleImages = useMemo(() => imageItems.filter(i => !pickCollection || i.collectionId === pickCollection), [imageItems, pickCollection]);
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [selectedImageName, setSelectedImageName] = useState<string>('');
@@ -235,6 +238,7 @@ const VisualStoryteller = () => {
 
                 {imageItems.length > 0 ? (
                     <>
+                        <CollectionFilter type="image" value={pickCollection} onChange={setPickCollection} className="mb-3" />
                         {/* Dropdown selector for many images */}
                         <select
                             onChange={(e) => {
@@ -247,7 +251,7 @@ const VisualStoryteller = () => {
                             value={imageItems.find(i => i.content === selectedImage)?.id || ''}
                         >
                             <option value="" disabled>Choose an image...</option>
-                            {imageItems.map(item => (
+                            {visibleImages.map(item => (
                                 <option key={item.id} value={item.id}>
                                     {item.name}
                                 </option>

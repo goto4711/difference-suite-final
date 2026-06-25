@@ -4,6 +4,7 @@ import VectorHeatmap from './components/VectorHeatmap';
 import { useSuiteStore } from '@difference-suite/shared/stores/suiteStore';
 import { Info, Cpu, Image as ImageIcon, Type } from 'lucide-react';
 import ToolLayout from '../../shared/ToolLayout';
+import CollectionFilter from '../../shared/CollectionFilter';
 import { transformersClient } from '../../../core/inference/TransformersClient';
 import { useReportCurrentOutput } from '../../../stores/currentOutputStore';
 
@@ -132,6 +133,11 @@ const DeepVectorMirror = () => {
 
     const imageItems = useMemo(() => dataset.filter(i => i.type === 'image'), [dataset]);
     const textItems = useMemo(() => dataset.filter(i => i.type === 'text'), [dataset]);
+    const [pickCollection, setPickCollection] = useState<string | null>(null);
+    const pickerItems = useMemo(
+        () => (mode === 'image' ? imageItems : textItems).filter(i => !pickCollection || i.collectionId === pickCollection),
+        [mode, imageItems, textItems, pickCollection],
+    );
 
     const selectedItem = dataset.find(i => i.id === activeItem);
 
@@ -319,13 +325,14 @@ const DeepVectorMirror = () => {
                 <label className="text-xs font-bold text-text-muted block mb-2 uppercase tracking-tight">
                     Select {mode === 'image' ? 'Image' : 'Text'} Target:
                 </label>
+                <CollectionFilter type={mode === 'image' ? 'image' : 'text'} value={pickCollection} onChange={setPickCollection} className="mb-2" />
                 <select
                     className="deep-input w-full text-xs"
                     value={activeItem || ''}
                     onChange={(e) => setActiveItem(e.target.value)}
                 >
                     <option value="" disabled>-- Choose {mode === 'image' ? 'Image' : 'Text'} --</option>
-                    {(mode === 'image' ? imageItems : textItems).map(item => (
+                    {pickerItems.map(item => (
                         <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                 </select>
